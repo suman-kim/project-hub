@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hub
+      POSTGRES_PASSWORD: hub
+      POSTGRES_DB: hub
+    ports:
+      # 다른 프로젝트와 겹치지 않게 5434, 맥북 밖에서는 접속하지 못하게 127.0.0.1에만 연다.
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - hub-pg:/var/lib/postgresql/data
+      - ./ops/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+volumes:
+  hub-pg:

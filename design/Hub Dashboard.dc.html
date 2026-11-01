@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--font-sans:"IBM Plex Sans KR",system-ui,sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;color-scheme:light;
+--bg-app:oklch(0.975 0.003 260);--bg-surface:oklch(1 0 0);--bg-sunken:oklch(0.96 0.004 260);--bg-hover:oklch(0.95 0.005 260);--bg-active:oklch(0.925 0.007 260);
+--line:oklch(0.91 0.005 260);--line-strong:oklch(0.84 0.007 260);--text-1:oklch(0.24 0.012 260);--text-2:oklch(0.43 0.012 260);--text-3:oklch(0.53 0.01 260);
+--ink:oklch(0.26 0.014 260);--ink-text:oklch(0.99 0 0);--focus:oklch(0.55 0.14 255);--scrim:oklch(0.2 0.01 260 / 0.32);
+--attn:oklch(0.52 0.12 65);--attn-bg:oklch(0.96 0.045 85);--attn-line:oklch(0.85 0.09 80);
+--prog:oklch(0.5 0.15 255);--prog-bg:oklch(0.96 0.025 255);--prog-line:oklch(0.85 0.06 255);
+--check:oklch(0.5 0.15 300);--check-bg:oklch(0.96 0.025 300);--check-line:oklch(0.86 0.06 300);
+--risk:oklch(0.52 0.18 27);--risk-bg:oklch(0.96 0.025 27);--risk-line:oklch(0.86 0.07 27);
+--done:oklch(0.55 0.04 165);--done-bg:oklch(0.96 0.012 165);--done-line:oklch(0.87 0.03 165)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+--bg-app:oklch(0.175 0.006 260);--bg-surface:oklch(0.205 0.007 260);--bg-sunken:oklch(0.155 0.006 260);--bg-hover:oklch(0.245 0.008 260);--bg-active:oklch(0.28 0.01 260);
+--line:oklch(0.29 0.008 260);--line-strong:oklch(0.36 0.01 260);--text-1:oklch(0.93 0.005 260);--text-2:oklch(0.76 0.008 260);--text-3:oklch(0.64 0.008 260);
+--ink:oklch(0.9 0.006 260);--ink-text:oklch(0.18 0.006 260);--focus:oklch(0.72 0.12 255);--scrim:oklch(0 0 0 / 0.5);
+--attn:oklch(0.82 0.12 80);--attn-bg:oklch(0.27 0.045 75);--attn-line:oklch(0.42 0.08 75);
+--prog:oklch(0.76 0.11 255);--prog-bg:oklch(0.26 0.045 255);--prog-line:oklch(0.42 0.09 255);
+--check:oklch(0.77 0.11 300);--check-bg:oklch(0.27 0.045 300);--check-line:oklch(0.42 0.09 300);
+--risk:oklch(0.74 0.14 25);--risk-bg:oklch(0.27 0.05 25);--risk-line:oklch(0.43 0.1 25);
+--done:oklch(0.7 0.04 165);--done-bg:oklch(0.25 0.015 165);--done-line:oklch(0.38 0.03 165)}}
+:root[data-theme="dark"]{color-scheme:dark;
+--bg-app:oklch(0.175 0.006 260);--bg-surface:oklch(0.205 0.007 260);--bg-sunken:oklch(0.155 0.006 260);--bg-hover:oklch(0.245 0.008 260);--bg-active:oklch(0.28 0.01 260);
+--line:oklch(0.29 0.008 260);--line-strong:oklch(0.36 0.01 260);--text-1:oklch(0.93 0.005 260);--text-2:oklch(0.76 0.008 260);--text-3:oklch(0.64 0.008 260);
+--ink:oklch(0.9 0.006 260);--ink-text:oklch(0.18 0.006 260);--focus:oklch(0.72 0.12 255);--scrim:oklch(0 0 0 / 0.5);
+--attn:oklch(0.82 0.12 80);--attn-bg:oklch(0.27 0.045 75);--attn-line:oklch(0.42 0.08 75);
+--prog:oklch(0.76 0.11 255);--prog-bg:oklch(0.26 0.045 255);--prog-line:oklch(0.42 0.09 255);
+--check:oklch(0.77 0.11 300);--check-bg:oklch(0.27 0.045 300);--check-line:oklch(0.42 0.09 300);
+--risk:oklch(0.74 0.14 25);--risk-bg:oklch(0.27 0.05 25);--risk-line:oklch(0.43 0.1 25);
+--done:oklch(0.7 0.04 165);--done-bg:oklch(0.25 0.015 165);--done-line:oklch(0.38 0.03 165)}
+html,body{margin:0;height:100%;background:var(--bg-app);color:var(--text-1);font-family:var(--font-sans);font-size:14px;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--text-1);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:2px}
+a:hover{color:var(--prog);text-decoration-color:currentColor}
+textarea::placeholder,input::placeholder{color:var(--text-3)}
+@keyframes hubPulse{0%,100%{opacity:1}50%{opacity:0.35}}
+</style>
+</helmet>
+<div style="display:grid; grid-template-columns:220px minmax(0,1fr); height:100vh; min-width:1024px; background:var(--bg-app); color:var(--text-1); font-family:var(--font-sans); font-size:14px">
+
+  <aside style="display:flex; flex-direction:column; min-height:0; background:var(--bg-sunken); border-right:1px solid var(--line)">
+    <div style="height:44px; flex:none; display:flex; align-items:center; gap:8px; padding:0 14px; border-bottom:1px solid var(--line)">
+      <span style="width:20px; height:20px; border-radius:5px; background:var(--ink); color:var(--ink-text); display:grid; place-items:center; font:600 11px var(--font-mono)">H</span>
+      <span style="font-weight:600; font-size:14px">Hub</span>
+      <span style="margin-left:auto; font:400 11px var(--font-mono); color:var(--text-3)">127.0.0.1:2424</span>
+    </div>
+    <div style="padding:14px 8px 4px; flex:none">
+      <div style="padding:0 8px 6px; font:500 11px var(--font-sans); color:var(--text-3)">앱</div>
+      <div style="display:grid; gap:1px">
+        <sc-for list="{{ apps }}" as="a" hint-placeholder-count="6">
+          <button onClick="{{ a.onClick }}" style="height:30px; display:flex; align-items:center; gap:8px; padding:0 8px; border:0; border-radius:6px; background:{{ a.bg }}; color:{{ a.fg }}; font-family:var(--font-sans); font-size:13px; font-weight:{{ a.fw }}; cursor:pointer; text-align:left" style-hover="background:var(--bg-hover)">
+            <span>{{ a.label }}</span>
+            <span style="font-size:11px; font-weight:400; color:var(--attn)">{{ a.note }}</span>
+            <span style="margin-left:auto; font:400 11px var(--font-mono); color:var(--text-3)">{{ a.count }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="margin:8px 16px; height:1px; background:var(--line); flex:none"></div>
+    <nav style="padding:0 8px; display:grid; gap:1px; flex:none">
+      <sc-for list="{{ menu }}" as="m" hint-placeholder-count="6">
+        <button onClick="{{ m.onClick }}" style="height:30px; display:flex; align-items:center; gap:8px; padding:0 8px; border:0; border-radius:6px; background:{{ m.bg }}; color:{{ m.fg }}; font-family:var(--font-sans); font-size:13px; font-weight:{{ m.fw }}; cursor:pointer; text-align:left" style-hover="background:var(--bg-hover)">
+          <span>{{ m.label }}</span>
+          <sc-if value="{{ m.hasBadge }}">
+            <span style="margin-left:auto; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:{{ m.badgeBg }}; color:{{ m.badgeFg }}; font:600 11px/18px var(--font-mono); text-align:center">{{ m.badge }}</span>
+          </sc-if>
+        </button>
+      </sc-for>
+    </nav>
+    <div style="margin-top:auto; padding:12px; border-top:1px solid var(--line); display:grid; gap:8px; flex:none">
+      <div style="display:flex; padding:2px; gap:2px; background:var(--bg-app); border:1px solid var(--line); border-radius:7px">
+        <sc-for list="{{ themes }}" as="th" hint-placeholder-count="3">
+          <button onClick="{{ th.onClick }}" style="flex:1; height:24px; border:0; border-radius:5px; background:{{ th.bg }}; color:{{ th.fg }}; box-shadow:{{ th.shadow }}; font:500 12px var(--font-sans); cursor:pointer">{{ th.label }}</button>
+        </sc-for>
+      </div>
+      <button onClick="{{ goTokens }}" style="height:28px; display:flex; align-items:center; padding:0 8px; border:0; border-radius:6px; background:{{ tokBg }}; color:var(--text-2); font:500 12px var(--font-sans); cursor:pointer; text-align:left" style-hover="background:var(--bg-hover); color:var(--text-1)">디자인 토큰 초안</button>
+    </div>
+  </aside>
+
+  <div style="display:flex; flex-direction:column; min-width:0; min-height:0">
+    <header style="height:44px; flex:none; display:flex; align-items:center; gap:14px; padding:0 16px; white-space:nowrap; overflow:hidden; background:var(--bg-surface); border-bottom:1px solid var(--line)">
+      <button onClick="{{ goToday }}" title="실행 중인 run" style="flex:none; display:flex; align-items:center; gap:8px; padding:0; border:0; background:none; cursor:pointer; color:var(--text-2); font:500 13px var(--font-sans)">
+        {{ liveDot }}
+        <span>실행 중</span>
+        <span style="font:600 13px var(--font-mono); color:var(--text-1)">{{ runningCount }}</span>
+      </button>
+      <span style="flex:none; width:1px; height:16px; background:var(--line)"></span>
+      <div title="{{ usageTitle }}" style="flex:none; display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-2)">
+        <span>7일</span>
+        <span style="position:relative; display:block; width:96px; height:6px; border-radius:3px; background:var(--bg-active)">
+          <span style="position:absolute; left:0; top:0; bottom:0; width:{{ usage7w }}; border-radius:3px; background:{{ usage7color }}"></span>
+          <span style="position:absolute; left:80%; top:-4px; bottom:-4px; width:1px; background:var(--text-3)"></span>
+        </span>
+        <span style="font:600 12px var(--font-mono); color:var(--text-1)">{{ usage7 }}%</span>
+        <span style="font:400 12px var(--font-mono); color:var(--text-3)">5시간 {{ usage5 }}%</span>
+        <span style="font-size:12px; color:var(--text-3)">· {{ usageAt }} 기준</span>
+      </div>
+      <div style="margin-left:auto; flex:none; display:flex; align-items:center; gap:12px">
+        <sc-if value="{{ wsOk }}" hint-placeholder-val="{{ true }}">
+          <span style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-3)"><span style="width:6px; height:6px; border-radius:50%; background:var(--done)"></span>실시간 연결됨</span>
+        </sc-if>
+        <sc-if value="{{ wsDown }}">
+          <span style="display:flex; align-items:center; gap:6px; height:24px; padding:0 8px; border-radius:5px; background:var(--risk-bg); color:var(--risk); font:500 12px var(--font-sans)"><span style="width:6px; height:6px; border-radius:50%; background:var(--risk)"></span>연결 끊김 · 다시 연결하는 중</span>
+        </sc-if>
+        <button onClick="{{ openPalette }}" style="height:28px; width:168px; display:flex; align-items:center; gap:8px; padding:0 6px 0 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg-app); color:var(--text-3); font:400 13px var(--font-sans); cursor:pointer" style-hover="border-color:var(--line-strong)">
+          <span>이동·검색</span>
+          <span style="margin-left:auto; font:500 11px var(--font-mono); padding:1px 5px; border:1px solid var(--line); border-radius:4px; background:var(--bg-surface); color:var(--text-3)">⌘K</span>
+        </button>
+      </div>
+    </header>
+
+    <div style="flex:1; display:flex; min-height:0; position:relative">
+      <main style="flex:1; min-width:0; overflow:auto">
+
+        <sc-if value="{{ isToday }}" hint-placeholder-val="{{ true }}">
+          <div style="max-width:1040px; margin:0 auto; padding:24px 28px 96px">
+            <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap">
+              <h1 style="margin:0; font:600 20px var(--font-sans); letter-spacing:-0.01em">오늘</h1>
+              <span style="font-size:13px; color:var(--text-3)">10월 27일 화요일 · {{ todoLabel }}</span>
+              <sc-if value="{{ appFiltered }}">
+                <span style="display:flex; align-items:center; gap:6px; margin-left:auto; font-size:12px; color:var(--text-2)">
+                  <span style="font:600 12px var(--font-mono); color:var(--text-1)">{{ appCode }}</span>만 보는 중
+                  <button onClick="{{ clearApp }}" style="height:24px; padding:0 8px; border:1px solid var(--line-strong); border-radius:5px; background:var(--bg-surface); color:var(--text-1); font:500 12px var(--font-sans); cursor:pointer" style-hover="background:var(--bg-hover)">전체 보기</button>
+                </span>
+              </sc-if>
+            </div>
+
+            <sc-if value="{{ noRepo }}">
+              <div style="margin-top:20px; display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--attn-line); border-radius:8px; background:var(--attn-bg)">
+                <div style="display:grid; gap:2px">
+                  <div style="font-weight:600; color:var(--text-1)">OA에는 저장소 경로가 없습니다</div>
+                  <div style="font-size:13px; color:var(--text-2)">실행과 기획 생성을 하려면 저장소 경로를 설정하세요.</div>
+                </div>
+                <button onClick="{{ goApps }}" style="margin-left:auto; height:28px; padding:0 10px; border:1px solid var(--line-strong); border-radius:6px; background:var(--bg-surface); color:var(--text-1); font:500 13px var(--font-sans); cursor:pointer" style-hover="background:var(--bg-hover)">앱 설정에서 경로 넣기</button>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ hasInput }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; align-items:center; gap:8px; margin:24px 0 8px">
+                <span style="width:8px; height:8px; border-radius:2px; background:var(--attn)"></span>
+                <h2 style="margin:0; font:600 13px var(--font-sans)">답변 대기</h2>
+                <span style="font:500 12px var(--font-mono); color:var(--text-3)">{{ inputCount }}</span>
+                <span style="margin-left:auto; font-size:12px; color:var(--text-3)">보내면 같은 세션으로 이어서 실행합니다</span>
+              </div>
+              <div style="display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:8px; overflow:hidden">
+                <sc-for list="{{ inputRows }}" as="q" hint-placeholder-count="2">
+                  <div style="background:var(--bg-surface); padding:14px 16px; display:grid; gap:10px">
+                    <div style="display:flex; align-items:center; gap:10px; min-width:0">
+                      <button onClick="{{ q.onOpen }}" style="flex:none; padding:0; border:0; background:none; font:500 12px var(--font-mono); color:var(--text-2); cursor:pointer" style-hover="color:var(--text-1); text-decoration:underline">{{ q.id }}</button>
+                      <button onClick="{{ q.onOpen }}" style="min-width:0; padding:0; border:0; background:none; font:500 14px var(--font-sans); color:var(--text-1); cursor:pointer; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" style-hover="text-decoration:underline">{{ q.title }}</button>
+                      <button onClick="{{ q.onLog }}" style="flex:none; white-space:nowrap; padding:0; border:0; background:none; font:400 12px var(--font-mono); color:var(--text-3); cursor:pointer" style-hover="color:var(--text-1); text-decoration:underline">run {{ q.runNo }}</button>
+                      <span style="margin-left:auto; flex:none; white-space:nowrap; font:500 12px var(--font-sans); color:var(--attn)">{{ q.waited }}</span>
+                    </div>
+                    <div style="padding:10px 12px; border-radius:6px; background:var(--attn-bg); border:1px solid var(--attn-line); font-size:14px; line-height:1.65; white-space:pre-wrap; text-wrap:pretty; color:var(--text-1)">{{ q.question }}</div>
+                    <sc-if value="{{ q.hasHistory }}">
+                      <div style="display:flex; align-items:baseline; gap:8px; font-size:12px; color:var(--text-3); min-width:0">
+                        <span style="flex:none; white-space:nowrap">앞서 보낸 답변 {{ q.historyCount }}개</span>
+                        <span style="min-width:0; color:var(--text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">“{{ q.historyText }}”</span>
+                        <span style="flex:none; white-space:nowrap; font-family:var(--font-mono)">{{ q.historyTime }}</span>
+                      </div>
+                    </sc-if>
+                    <div style="display:flex; gap:8px; align-items:flex-end">
+                      <textarea value="{{ q.draft }}" onChange="{{ q.onDraft }}" onKeyDown="{{ q.onKey }}" placeholder="답변을 입력하세요" rows="2" style="flex:1; min-width:0; resize:vertical; padding:8px 10px; border:1px solid var(--line-strong); border-radius:6px; background:var(--bg-surface); color:var(--text-1); font:400 14px/1.5 var(--font-sans); outline:none" style-focus="border-color:var(--focus); box-shadow:0 0 0 3px color-mix(in oklch, var(--focus) 20%, transparent)"></textarea>
+                      <button onClick="{{ q.onSend }}" disabled="{{ q.sendDisabled }}" style="flex:none; height:32px; padding:0 10px 0 12px; display:inline-flex; align-items:center; gap:8px; border:1px solid var(--ink); border-radius:6px; background:var(--ink); color:var(--ink-text); font:500 13px/1 var(--font-sans); cursor:{{ q.sendCursor }}; opacity:{{ q.sendOpacity }}">보내기<span style="font:500 11px var(--font-mono); opacity:0.7">⌘↵</span></button>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ hasFailed }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; align-items:center; gap:8px; margin:28px 0 8px">
+                <span style="width:8px; height:8px; border-radius:2px; background:var(--risk)"></span>
+                <h2 style="margin:0; font:600 13px var(--font-sans)">실패한 run</h2>
+                <span style="font:500 12px var(--font-mono); color:var(--text-3)">{{ failedCount }}</span>
+              </div>
+              <div style="display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:8px; overflow:hidden">
+                <sc-for list="{{ failedRows }}" as="f" hint-placeholder-count="3">
+                  <div style="background:var(--bg-surface); display:grid; grid-template-columns:64px minmax(0,1fr) auto; gap:12px; align-items:center; padding:9px 12px 9px 16px; min-height:54px" style-hover="background:var(--bg-hover)">
+                    <button onClick="{{ f.onOpen }}" style="justify-self:start; padding:0; border:0; background:none; font:500 12px var(--font-mono); color:var(--text-2); cursor:pointer" style-hover="color:var(--text-1); text-decoration:underline">{{ f.id }}</button>
+                    <div style="min-width:0; display:grid; gap:3px">
+                      <div style="display:flex; align-items:center; gap:8px; min-width:0">
+                        <button onClick="{{ f.onOpen }}" style="min-width:0; padding:0; border:0; background:none; font:500 14px var(--font-sans); color:var(--text-1); cursor:pointer; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" style-hover="text-decoration:underline">{{ f.title }}</button>
+                        <span style="flex:none; display:inline-flex; align-items:center; height:20px; padding:0 6px; border-radius:4px; background:var(--risk-bg); color:var(--risk); font:500 12px var(--font-sans)">{{ f.reason }}</span>
+                      </div>
+                      <div style="font:400 12px var(--font-mono); color:var(--text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ f.detail }}</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px">
+                      <span style="margin-right:6px; font:400 12px var(--font-mono); color:var(--text-3)">{{ f.time }}</span>
+                      <button onClick="{{ f.onLog }}" style="height:28px; padding:0 10px; display:inline-flex; align-items:center; border:1px solid var(--line-strong); border-radius:6px; background:var(--bg-surface); color:var(--text-1); font:500 13px/1 var(--font-sans); cursor:pointer; white-space:nowrap" style-hover="background:var(--bg-hover)">로그</button>
+                      <button onClick="{{ f.onRerun }}" style="height:28px; padding:0 10px; display:inline-flex; align-items:center; border:1px solid var(--line-strong); border-radius:6px; background:var(--bg-surface); color:var(--text-1); font:500 13px/1 var(--font-sans); cursor:pointer; white-space:nowrap" style-hover="background:var(--bg-hover)">다시 실행</button>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ hasReview }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; align-items:center; gap:8px; margin:28px 0 8px">
+                <span style="width:8px; height:8px; border-radius:2px; background:var(--check)"></span>
+                <h2 style="margin:0; font:600 13px var(--font-sans)">리뷰 대기</h2>
+                <span style="font:500 12px var(--font-mono); color:var(--text-3)">{{ reviewCount }}</span>
+                <span style="margin-left:auto; font-size:12px; color:var(--text-3)">GitHub에서 머지한 뒤 완료로 바꿉니다</span>
+              </div>
+              <div style="display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:8px; overflow:hidden">
+                <sc-for list="{{ reviewRows }}" as="r" hint-placeholder-count="4">
+                  <div style="background:var(--bg-surface); display:grid; grid-template-columns:64px minmax(0,1fr) auto; gap:12px; align-items:center; padding:9px 12px 9px 16px; min-height:54px" style-hover="background:var(--bg-hover)">
+                    <button onClick="{{ r.onOpen }}" style="justify-self:start; padding:0; border:0; background:none; font:500 12px var(--font-mono); color:var(--text-2); cursor:pointer" style-hover="color:var(--text-1); text-decoration:underline">{{ r.id }}</button>
+                    <div style="min-width:0; display:grid; gap:3px">
+                      <button onClick="{{ r.onOpen }}" style="justify-self:start; max-width:100%; padding:0; border:0; background:none; font:500 14px var(--font-sans); color:var(--text-1); cursor:pointer; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" style-hover="text-decoration:underline">{{ r.title }}</button>
+                      <div style="display:flex; gap:8px; min-width:0; font-size:12px">
+                        <span style="flex:none; font-family:var(--font-mono); color:var(--text-3)">{{ r.branch }}</span>
+                        <span style="min-width:0; color:var(--text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ r.summary }}</span>
+                      </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px">
+                      <a href="#" onClick="{{ r.onPR }}" style="margin-right:6px; font:500 12px var(--font-mono)">PR {{ r.pr }} ↗</a>
+                      <button onClick="{{ r.onDone }}" style="height:28px; padding:0 10px; display:inline-flex; align-items:center; border:1px solid var(--line-strong); border-radius:6px; background:var(--bg-surface); color:var(--text-1); font:500 13px/1 var(--font-sans); cursor:pointer; white-space:nowrap" style-hover="background:var(--bg-hover)">완료로 바꾸기</button>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ hasIdeas }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; align-items:center; gap:8px; margin:28px 0 8px">
+                <span style="width:8px; height:8px; border-radius:2px; background:var(--check); opacity:0.55"></span>
+                <h2 style="margin:0; font:600 13px var(--font-sans)">대기 중 기획</h2>
+                <span style="font:500 12px var(--font-mono); color:var(--text-3)">{{ ideaCount }}</span>
+                <span style="margin-left:auto; font-size:12px; color:var(--text-3)">승인·수정 요청·반려는 기획함에서</span>
+              </div>
+              <div style="display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:8px; overflow:hidden">
+                <sc-for list="{{ ideaRows }}" as="i" hint-placeholder-count="2">
+                  <div style="background:var(--bg-surface); display:grid; grid-template-columns:64px minmax(0,1fr) auto; gap:12px; align-items:center; padding:9px 12px 9px 16px; min-height:54px" style-hover="background:var(--bg-hover)">
+                    <span style="font:500 12px var(--font-mono); color:var(--text-2)">{{ i.app }} {{ i.no }}</span>
+                    <div style="min-width:0; display:grid; gap:3px">
+                      <div style="display:flex; align-items:center; gap:8px; min-width:0">
+                        <button onClick="{{ i.onOpen }}" style="min-width:0; padding:0; border:0; background:none; font:500 14px var(--font-sans); color:var(--text-1); cursor:pointer; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" style-hover="text-decoration:underline">{{ i.title }}</button>
+                        <sc-if value="{{ i.auto }}">
+                          <span style="flex:none; display:inline-flex; align-items:center; height:20px; padding:0 6px; border-radius:4px; background:var(--bg-active); color:var(--text-2); font:500 12px var(--font-sans)">자동 생성</span>
+                        </sc-if>
+                        <span style="flex:none; white-space:nowrap; font:400 12px var(--font-mono); color:var(--text-3)">{{ i.meta }} · {{ i.tasks }}</span>
+                      </div>
+                      <div style="font-size:12px; color:var(--text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ i.problem }}</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px">
+                      <button onClick="{{ i.onOpen }}" style="height:28px; padding:0 10px; display:inline-flex; align-items:center; border:1px solid var(--line-strong); border-radius:6px; background:var(--bg-surface); color:var(--text-1); font:500 13px/1 var(--font-sans); cursor:pointer; white-space:nowrap" style-hover="background:var(--bg-hover)">기획함에서 열기</button>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ todoEmpty }}">
+              <div style="margin-top:24px; padding:28px 24px; border:1px dashed var(--line-strong); border-radius:8px; display:grid; gap:6px">
+                <div style="font:600 15px var(--font-sans)">처리할 일이 없습니다</div>
+                <div style="font-size:13px; color:var(--text-2)">답변 대기, 실패한 run, 리뷰 대기, 검토할 기획이 생기면 여기에 모입니다.</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ hasRunning }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; align-items:center; gap:8px; margin:28px 0 8px">
+                <span style="width:8px; height:8px; border-radius:2px; background:var(--prog)"></span>
+                <h2 style="margin:0; font:600 13px var(--font-sans)">실행 중</h2>
+                <span style="font:500 12px var(--font-mono); color:var(--text-3)">{{ runningCount }}</span>
+                <span style="margin-left:auto; font-size:12px; color:var(--text-3)">마지막 로그 한 줄을 실시간으로 보여 줍니다</span>
+              </div>
+              <div style="display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:8px; overflow:hidden">
+                <sc-for list="{{ runningRows }}" as="x" hint-placeholder-count="2">
+                  <div style="background:var(--bg-surface); display:grid; grid-template-columns:64px minmax(0,1fr) auto; gap:12px; align-items:center; padding:9px 12px 9px 16px; min-height:54px" style-hover="background:var(--bg-hover)">
+                    <button onClick="{{ x.onOpen }}" style="justify-self:start; padding:0; border:0; background:none; font:500 12px var(--font-mono); color:var(--text-2); cursor:pointer" style-hover="color:var(--text-1); text-decoration:underline">{{ x.id }}</button>
+                    <div style="min-width:0; display:grid; gap:3px">
+                      <div style="display:flex; align-items:center; gap:8px; min-width:0">
+                        <button onClick="{{ x.onOpen }}" style="min-width:0; padding:0; border:0; background:none; font:500 14px var(--font-sans); color:var(--text-1); cursor:pointer; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap" style-hover="text-decoration:underline">{{ x.title }}</button>
+                        <span style="flex:none; font:400 11px var(--font-mono); color:var(--text-3)">{{ x.kind }}</span>
+                      </div>
+                      <div style="display:flex; gap:8px; min-width:0; font:400 12px var(--font-mono)">
+                        <span style="flex:none; width:72px; color:var(--text-3)">{{ x.logKind }}</span>
+                        <span style="min-width:0; color:var(--text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ x.logText }}</span>
+                      </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px">
+                      <span style="margin-right:6px; min-width:44px; text-align:right; font:500 12px var(--font-mono); color:var(--prog)">{{ x.elapsed }}</span>
+                      <button onClick="{{ x.onLog }}" style="height:28px; padding:0 10px; display:inline-flex; align-items:center; border:1px solid var(--line-strong); border-radius:6px; background:var(--bg-surface); color:var(--text-1); font:500 13px/1 var(--font-sans); cursor:pointer; white-space:nowrap" style-hover="background:var(--bg-hover)">로그 보기</button>
+                      <button onClick="{{ x.onStop }}" style="height:28px; padding:0 10px; display:inline-flex; align-items:center; border:1px solid var(--line-strong); border-radius:6px; background:var(--bg-surface); color:var(--risk); font:500 13px/1 var(--font-sans); cursor:pointer; white-space:nowrap" style-hover="background:var(--risk-bg); border-color:var(--risk-line)">중지</button>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ showRecent }}">
+              <div style="display:flex; align-items:center; gap:8px; margin:28px 0 8px">
+                <span style="width:8px; height:8px; border-radius:2px; background:var(--done)"></span>
+                <h2 style="margin:0; font:600 13px var(--font-sans)">최근 완료된 run</h2>
+              </div>
+              <div style="display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:8px; overflow:hidden">
+                <sc-for list="{{ recentRows }}" as="d" hint-placeholder-count="4">
+                  <div style="background:var(--bg-surface); display:grid; grid-template-columns:64px minmax(0,1fr) auto; gap:12px; align-items:center; padding:0 16px; height:36px">
+                    <span style="font:500 12px var(--font-mono); color:var(--text-2)">{{ d.id }}</span>
+                    <span style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ d.title }}</span>
+                    <span style="display:flex; align-items:center; gap:10px; font:400 12px var(--font-mono); color:var(--text-3)">
+                      <span>run {{ d.run }} · {{ d.end }} · {{ d.dur }} · {{ d.cost }}</span>
+                      <span style="display:inline-flex; align-items:center; height:20px; padding:0 6px; border-radius:4px; background:var(--done-bg); color:var(--done); font:500 12px var(--font-sans)">완료</span>
+                    </span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isStub }}">
+          <div style="max-width:760px; margin:0 auto; padding:24px 28px 96px">
+            <div style="display:flex; align-items:center; gap:10px">
+              <h1 style="margin:0; font:600 20px var(--font-sans)">{{ stub.title }}</h1>
+              <sc-if value="{{ stub.hasRun }}">
+                <span style="display:inline-flex; align-items:center; height:20px; padding:0 6px; border-radius:4px; background:{{ stub.bg }}; color:{{ stub.fg }}; font:500 12px var(--font-sans)">{{ stub.statusLabel }}</span>
+              </sc-if>
+              <span style="font:500 12px var(--font-mono); color:var(--text-3)">{{ stub.code }}</span>
+              <button onClick="{{ goToday }}" style="margin-left:auto; height:28px; padding:0 10px; border:1px solid var(--line-strong); border-radius:6px; background:var(--bg-surface); color:var(--text-1); font:500 13px var(--font-sans); cursor:pointer" style-hover="background:var(--bg-hover)">← 오늘로</button>
+            </div>
+            <sc-if value="{{ stub.hasRun }}">
+              <dl style="margin:20px 0 0; display:grid; grid-template-columns:88px minmax(0,1fr); gap:8px 16px; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--bg-surface); font-size:13px">
+                <sc-for list="{{ stub.fields }}" as="fd" hint-placeholder-count="6">
+                  <dt style="color:var(--text-3)">{{ fd.k }}</dt>
+                  <dd style="margin:0; font-family:var(--font-mono); font-size:12px; color:var(--text-1); overflow-wrap:anywhere">{{ fd.v }}</dd>
+                </sc-for>
+              </dl>
+            </sc-if>
+            <div style="margin-top:20px; padding:20px 22px; border:1px dashed var(--line-strong); border-radius:8px; display:grid; gap:10px">
+              <div style="font:600 14px var(--font-sans)">{{ stub.stage }} 단계에서 만듭니다 <span style="font-weight:400; color:var(--text-3)">· {{ stub.scene }}</span></div>
+              <ul style="margin:0; padding-left:18px; display:grid; gap:4px; color:var(--text-2); font-size:13px; line-height:1.6">
+                <sc-for list="{{ stub.items }}" as="it" hint-placeholder-count="4">
+                  <li>{{ it }}</li>
+                </sc-for>
+              </ul>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isTokens }}">
+          <div style="max-width:1040px; margin:0 auto; padding:24px 28px 96px">
+            <div style="display:flex; align-items:baseline; gap:12px">
+              <h1 style="margin:0; font:600 20px var(--font-sans)">디자인 토큰</h1>
+              <span style="font-size:13px; color:var(--text-3)">D1 초안 · D5에서 구현용 CSS 변수로 확정합니다</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; margin:24px 0 8px">
+              <h2 style="margin:0; font:600 13px var(--font-sans)">상태 색</h2>
+              <span style="margin-left:auto; font-size:12px; color:var(--text-3)">색은 상태를 알리는 데만 씁니다. 각 의미마다 글자·바탕·테두리 세 값</span>
+            </div>
+            <div style="display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:8px; overflow:hidden">
+              <div style="background:var(--bg-sunken); display:grid; grid-template-columns:72px 150px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr); gap:12px; padding:8px 16px; font:500 12px var(--font-sans); color:var(--text-3)">
+                <span>의미</span><span>변수</span><span>라이트</span><span>다크</span><span>쓰는 곳</span>
+              </div>
+              <sc-for list="{{ tokStatus }}" as="ts" hint-placeholder-count="5">
+                <div style="background:var(--bg-surface); display:grid; grid-template-columns:72px 150px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr); gap:12px; padding:10px 16px; align-items:center">
+                  <span style="font-weight:600">{{ ts.name }}</span>
+                  <span style="font:400 12px var(--font-mono); color:var(--text-2)">{{ ts.vars }}</span>
+                  <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:6px; background:oklch(1 0 0); border:1px solid oklch(0.91 0.005 260); min-width:0">
+                    <span style="flex:none; display:inline-flex; align-items:center; height:20px; padding:0 6px; border-radius:4px; font:500 12px var(--font-sans); background:{{ ts.lbg }}; color:{{ ts.lfg }}; box-shadow:inset 0 0 0 1px {{ ts.lline }}">{{ ts.sample }}</span>
+                    <span style="min-width:0; font:400 11px var(--font-mono); color:oklch(0.43 0.012 260); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ ts.lfg }}</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:6px; background:oklch(0.205 0.007 260); border:1px solid oklch(0.29 0.008 260); min-width:0">
+                    <span style="flex:none; display:inline-flex; align-items:center; height:20px; padding:0 6px; border-radius:4px; font:500 12px var(--font-sans); background:{{ ts.dbg }}; color:{{ ts.dfg }}; box-shadow:inset 0 0 0 1px {{ ts.dline }}">{{ ts.sample }}</span>
+                    <span style="min-width:0; font:400 11px var(--font-mono); color:oklch(0.76 0.008 260); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ ts.dfg }}</span>
+                  </div>
+                  <span style="font-size:13px; color:var(--text-2)">{{ ts.use }}</span>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:8px; margin:28px 0 8px">
+              <h2 style="margin:0; font:600 13px var(--font-sans)">바탕 · 선 · 글자</h2>
+            </div>
+            <div style="display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:8px; overflow:hidden">
+              <sc-for list="{{ tokNeutral }}" as="tn" hint-placeholder-count="12">
+                <div style="background:var(--bg-surface); display:grid; grid-template-columns:150px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr); gap:12px; padding:0 16px; height:36px; align-items:center">
+                  <span style="font:500 12px var(--font-mono)">{{ tn.name }}</span>
+                  <span style="display:flex; align-items:center; gap:8px; min-width:0"><span style="flex:none; width:16px; height:16px; border-radius:4px; background:{{ tn.light }}; box-shadow:inset 0 0 0 1px oklch(0.5 0 0 / 0.2)"></span><span style="font:400 11px var(--font-mono); color:var(--text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ tn.light }}</span></span>
+                  <span style="display:flex; align-items:center; gap:8px; min-width:0"><span style="flex:none; width:16px; height:16px; border-radius:4px; background:{{ tn.dark }}; box-shadow:inset 0 0 0 1px oklch(0.5 0 0 / 0.2)"></span><span style="font:400 11px var(--font-mono); color:var(--text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ tn.dark }}</span></span>
+                  <span style="font-size:13px; color:var(--text-2)">{{ tn.use }}</span>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:8px; margin:28px 0 8px">
+              <h2 style="margin:0; font:600 13px var(--font-sans)">글꼴 · 크기 · 간격</h2>
+            </div>
+            <div style="display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:8px; overflow:hidden">
+              <sc-for list="{{ tokType }}" as="tt" hint-placeholder-count="7">
+                <div style="background:var(--bg-surface); display:grid; grid-template-columns:150px minmax(0,2fr) minmax(0,1fr); gap:12px; padding:0 16px; height:36px; align-items:center">
+                  <span style="font:500 12px var(--font-mono)">{{ tt.name }}</span>
+                  <span style="font:400 12px var(--font-mono); color:var(--text-1)">{{ tt.value }}</span>
+                  <span style="font-size:13px; color:var(--text-2)">{{ tt.use }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </main>
+
+      <sc-if value="{{ panelOpen }}">
+        <aside style="width:460px; flex:none; border-left:1px solid var(--line); background:var(--bg-surface); overflow:auto; position:{{ panelPos }}; top:0; right:0; bottom:0; z-index:20; box-shadow:{{ panelShadow }}">
+          <div style="position:sticky; top:0; z-index:1; background:var(--bg-surface); border-bottom:1px solid var(--line); padding:12px 16px 14px; display:grid; gap:10px">
+            <div style="display:flex; align-items:center; gap:8px">
+              <span style="font:500 12px var(--font-mono); color:var(--text-2)">{{ p.id }}</span>
+              <span style="display:inline-flex; align-items:center; height:20px; padding:0 6px; border-radius:4px; background:{{ p.bg }}; color:{{ p.fg }}; font:500 12px var(--font-sans)">{{ p.statusLabel }}</span>
+              <sc-if value="{{ p.blocked }}">
+                <span title="완료되지 않은 의존 task가 있습니다" style="display:inline-flex; align-items:center; height:20px; padding:0 6px; border-radius:4px; background:var(--attn-bg); color:var(--attn); font:500 12px var(--font-sans)">막힘</span>
+              </sc-if>
+              <div style="margin-left:auto; display:flex; align-items:center; gap:6px">
+                <button onClick="{{ p.onRun }}" disabled="{{ p.runDisabled }}" title="{{ p.runTitle }}" style="height:28px; padding:0 8px 0 10px; display:inline-flex; align-items:center; gap:8px; border:1px solid var(--ink); border-radius:6px; background:var(--ink); color:var(--ink-text); font:500 13px/1 var(--font-sans); cursor:{{ p.runCursor }}; opacity:{{ p.runOpacity }}">실행<span style="font:500 11px var(--font-mono); opacity:0.7">r</span></button>
+                <button onClick="{{ closePanel }}" title="닫기 (Esc)" style="width:28px; height:28px; display:grid; place-items:center; border:0; border-radius:6px; background:none; color:var(--text-2); font-size:14px; cursor:pointer" style-hover="background:var(--bg-hover); color:var(--text-1)">✕</button>
+              </div>
+            </div>
+            <h2 style="margin:0; font:600 17px/1.4 var(--font-sans); text-wrap:pretty">{{ p.title }}</h2>
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:4px">
+              <span style="margin-right:4px; font-size:12px; color:var(--text-3)">상태 바꾸기</span>
+              <sc-for list="{{ p.transitions }}" as="tr" hint-placeholder-count="5">
+                <button onClick="{{ tr.onClick }}" disabled="{{ tr.disabled }}" title="{{ tr.title }}" style="height:24px; padding:0 8px; border:1px solid var(--line-strong); border-radius:5px; background:var(--bg-surface); color:var(--text-1); font:500 12px var(--font-sans); cursor:{{ tr.cursor }}; opacity:{{ tr.opacity }}" style-hover="background:var(--bg-hover)">{{ tr.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="padding:16px; display:grid; gap:24px">
+            <dl style="margin:0; display:grid; grid-template-columns:64px minmax(0,1fr); gap:8px 12px; font-size:13px; align-items:baseline">
+              <dt style="color:var(--text-3)">앱</dt><dd style="margin:0; font-weight:500">{{ p.app }}</dd>
+              <dt style="color:var(--text-3)">크기</dt><dd style="margin:0; font:500 12px var(--font-mono)">{{ p.size }}</dd>
+              <dt style="color:var(--text-3)">브랜치</dt><dd style="margin:0; font:400 12px var(--font-mono)">{{ p.branch }}</dd>
+              <dt style="color:var(--text-3)">PR</dt>
+              <dd style="margin:0">
+                <sc-if value="{{ p.hasPR }}"><a href="#" onClick="{{ p.onPR }}" style="font:500 12px var(--font-mono)">{{ p.pr }} ↗</a></sc-if>
+                <sc-if value="{{ p.noPR }}"><span style="color:var(--text-3)">없음</span></sc-if>
+              </dd>
+              <dt style="color:var(--text-3)">태그</dt><dd style="margin:0; color:var(--text-2)">{{ p.tags }}</dd>
+              <dt style="color:var(--text-3)">의존</dt>
+              <dd style="margin:0; display:grid; gap:4px">
+                <sc-for list="{{ p.deps }}" as="dp" hint-placeholder-count="1">
+                  <span style="display:flex; gap:8px; align-items:baseline"><span style="font:500 12px var(--font-mono)">{{ dp.id }}</span><span style="font-size:12px; color:{{ dp.fg }}">{{ dp.label }}</span></span>
+                </sc-for>
+                <sc-if value="{{ p.noDeps }}"><span style="color:var(--text-3)">없음</span></sc-if>
+              </dd>
+            </dl>
+
+            <section style="display:grid; gap:8px">
+              <h3 style="margin:0; font:600 12px var(--font-sans); color:var(--text-3)">설명</h3>
+              <p style="margin:0; line-height:1.65; text-wrap:pretty">{{ p.desc }}</p>
+              <ul style="margin:0; padding-left:18px; display:grid; gap:2px; line-height:1.65">
+                <sc-for list="{{ p.items }}" as="it" hint-placeholder-count="3">
+                  <li>{{ it }}</li>
+                </sc-for>
+              </ul>
+            </section>
+
+            <section style="display:grid; gap:8px">
+              <h3 style="margin:0; font:600 12px var(--font-sans); color:var(--text-3)">run <span style="font-family:var(--font-mono); font-weight:500">{{ p.runCount }}</span></h3>
+              <sc-if value="{{ p.hasRuns }}">
+                <div style="display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:8px; overflow:hidden">
+                  <sc-for list="{{ p.runs }}" as="pr" hint-placeholder-count="2">
+                    <button onClick="{{ pr.onClick }}" style="display:grid; grid-template-columns:72px 72px minmax(0,1fr) auto auto; gap:10px; align-items:center; height:36px; padding:0 12px; border:0; background:var(--bg-surface); color:var(--text-1); text-align:left; cursor:pointer; font:400 12px var(--font-mono)" style-hover="background:var(--bg-hover)">
+                      <span style="font-weight:500">{{ pr.no }}</span>
+                      <span style="justify-self:start; display:inline-flex; align-items:center; height:20px; padding:0 6px; border-radius:4px; background:{{ pr.bg }}; color:{{ pr.fg }}; font:500 12px var(--font-sans)">{{ pr.label }}</span>
+                      <span style="color:var(--text-3)">{{ pr.start }}</span>
+                      <span style="color:var(--text-2)">{{ pr.dur }}</span>
+                      <span style="min-width:44px; text-align:right; color:var(--text-2)">{{ pr.cost }}</span>
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ p.noRuns }}"><div style="font-size:13px; color:var(--text-3)">아직 실행한 적이 없습니다.</div></sc-if>
+            </section>
+
+            <section style="display:grid; gap:10px">
+              <h3 style="margin:0; font:600 12px var(--font-sans); color:var(--text-3)">타임라인</h3>
+              <div style="display:grid; gap:8px">
+                <sc-for list="{{ p.notes }}" as="n" hint-placeholder-count="3">
+                  <div style="display:grid; grid-template-columns:76px 40px minmax(0,1fr); gap:8px; align-items:baseline; font-size:13px">
+                    <span style="font:400 12px var(--font-mono); color:var(--text-3)">{{ n.t }}</span>
+                    <span style="font-size:12px; color:var(--text-3)">{{ n.k }}</span>
+                    <span style="color:var(--text-1); line-height:1.55; text-wrap:pretty">{{ n.text }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex; gap:6px">
+                <input value="{{ p.noteDraft }}" onChange="{{ p.onNoteDraft }}" onKeyDown="{{ p.onNoteKey }}" placeholder="메모 남기기 · 상태는 그대로 둡니다" style="flex:1; min-width:0; height:32px; padding:0 10px; border:1px solid var(--line-strong); border-radius:6px; background:var(--bg-surface); color:var(--text-1); font:400 13px var(--font-sans); outline:none" style-focus="border-color:var(--focus)">
+                <button onClick="{{ p.onAddNote }}" style="height:32px; padding:0 10px; border:1px solid var(--line-strong); border-radius:6px; background:var(--bg-surface); color:var(--text-1); font:500 13px var(--font-sans); cursor:pointer" style-hover="background:var(--bg-hover)">남기기</button>
+              </div>
+            </section>
+          </div>
+        </aside>
+      </sc-if>
+    </div>
+  </div>
+
+  <sc-if value="{{ paletteOpen }}">
+    <div onClick="{{ closePalette }}" style="position:fixed; inset:0; z-index:40; background:var(--scrim); display:flex; justify-content:center; align-items:flex-start; padding-top:14vh">
+      <div onClick="{{ stop }}" style="width:560px; background:var(--bg-surface); border:1px solid var(--line); border-radius:10px; box-shadow:0 20px 50px oklch(0 0 0 / 0.25); overflow:hidden">
+        <input ref="{{ paletteRef }}" value="{{ pq }}" onChange="{{ onPq }}" onKeyDown="{{ onPkey }}" placeholder="화면이나 task로 이동" style="width:100%; height:48px; padding:0 16px; border:0; border-bottom:1px solid var(--line); background:transparent; color:var(--text-1); font:400 15px var(--font-sans); outline:none">
+        <div style="padding:6px; display:grid; gap:1px; max-height:360px; overflow:auto">
+          <sc-for list="{{ palItems }}" as="pi" hint-placeholder-count="6">
+            <button onClick="{{ pi.onClick }}" onMouseEnter="{{ pi.onHover }}" style="height:34px; display:flex; align-items:center; gap:10px; padding:0 10px; border:0; border-radius:6px; background:{{ pi.bg }}; color:var(--text-1); font:400 13px var(--font-sans); text-align:left; cursor:pointer">
+              <span style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ pi.label }}</span>
+              <span style="margin-left:auto; flex:none; font-size:12px; color:var(--text-3)">{{ pi.sub }}</span>
+            </button>
+          </sc-for>
+          <sc-if value="{{ palEmpty }}"><div style="padding:12px 10px; font-size:13px; color:var(--text-3)">맞는 항목이 없습니다</div></sc-if>
+        </div>
+        <div style="display:flex; gap:14px; padding:8px 14px; border-top:1px solid var(--line); background:var(--bg-sunken); font-size:12px; color:var(--text-3)">
+          <span><span style="font-family:var(--font-mono)">↑↓</span> 이동</span><span><span style="font-family:var(--font-mono)">↵</span> 열기</span><span><span style="font-family:var(--font-mono)">esc</span> 닫기</span>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ confirmOpen }}">
+    <div onClick="{{ closeConfirm }}" style="position:fixed; inset:0; z-index:50; background:var(--scrim); display:grid; place-items:center">
+      <div onClick="{{ stop }}" style="width:400px; padding:20px; display:grid; gap:10px; background:var(--bg-surface); border:1px solid var(--line); border-radius:10px; box-shadow:0 20px 50px oklch(0 0 0 / 0.25)">
+        <div style="font:600 15px var(--font-sans)">{{ cf.title }}</div>
+        <div style="font-size:13px; line-height:1.6; color:var(--text-2); white-space:pre-wrap">{{ cf.body }}</div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px">
+          <button onClick="{{ closeConfirm }}" style="height:32px; padding:0 12px; border:1px solid var(--line-strong); border-radius:6px; background:var(--bg-surface); color:var(--text-1); font:500 13px var(--font-sans); cursor:pointer" style-hover="background:var(--bg-hover)">그대로 두기</button>
+          <button onClick="{{ cf.onOk }}" style="height:32px; padding:0 12px; border:1px solid var(--risk); border-radius:6px; background:var(--risk); color:var(--bg-surface); font:500 13px var(--font-sans); cursor:pointer" style-hover="opacity:0.9">{{ cf.label }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastOpen }}">
+    <div style="position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:60; display:flex; align-items:center; gap:14px; padding:10px 14px; border-radius:8px; background:var(--ink); color:var(--ink-text); font:500 13px var(--font-sans); box-shadow:0 10px 30px oklch(0 0 0 / 0.2)">
+      <span>{{ toastMsg }}</span>
+      <sc-if value="{{ toastUndo }}">
+        <button onClick="{{ onUndo }}" style="padding:0; border:0; background:none; color:inherit; font:600 13px var(--font-sans); text-decoration:underline; text-underline-offset:2px; cursor:pointer">되돌리기</button>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;기본&quot;,&quot;처리할 일 없음&quot;],&quot;default&quot;:&quot;기본&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;시안 상태&quot;},&quot;ws&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;연결됨&quot;,&quot;끊김&quot;],&quot;default&quot;:&quot;연결됨&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;시안 상태&quot;},&quot;liveEvents&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;시안 상태&quot;}}">
+const T0 = 9 * 3600 + 20 * 60;
+const at = (h, m) => h * 3600 + m * 60;
+const DAY = 86400;
+const pad = n => String(n).padStart(2, '0');
+const hm = s => { const x = ((Math.floor(s) % DAY) + DAY) % DAY; return (s < 0 ? '어제 ' : '') + pad(Math.floor(x / 3600)) + ':' + pad(Math.floor(x % 3600 / 60)); };
+const dur = s => { s = Math.max(0, Math.floor(s)); if (s < 60) return s + '초'; const m = Math.floor(s / 60); if (m < 60) return m + '분'; return Math.floor(m / 60) + '시간 ' + (m % 60) + '분'; };
+const clock = s => { s = Math.max(0, Math.floor(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + pad(m) : m) + ':' + pad(x); };
+const clone = o => JSON.parse(JSON.stringify(o));
+
+const TONE = {
+  neutral: { fg: 'var(--text-2)', bg: 'var(--bg-active)' },
+  attn: { fg: 'var(--attn)', bg: 'var(--attn-bg)' },
+  prog: { fg: 'var(--prog)', bg: 'var(--prog-bg)' },
+  check: { fg: 'var(--check)', bg: 'var(--check-bg)' },
+  risk: { fg: 'var(--risk)', bg: 'var(--risk-bg)' },
+  done: { fg: 'var(--done)', bg: 'var(--done-bg)' },
+};
+const TASK_ST = { todo: ['할 일', 'neutral'], doing: ['진행 중', 'prog'], input: ['답변 대기', 'attn'], review: ['리뷰', 'check'], done: ['완료', 'done'], cancelled: ['취소', 'neutral'] };
+const RUN_ST = { queued: ['대기', 'neutral'], running: ['실행 중', 'prog'], input: ['답변 대기', 'attn'], done: ['완료', 'done'], stopped: ['중지', 'neutral'], failed: ['실패', 'risk'] };
+// 가정: packages/shared/src/status.ts 의 task 전이. input은 run이 정하므로 직접 고를 수 없음
+const NEXT = { todo: ['doing', 'cancelled'], doing: ['todo', 'review', 'cancelled'], input: ['doing', 'cancelled'], review: ['doing', 'done', 'cancelled'], done: [], cancelled: ['todo'] };
+const FAIL = { rate_limit: '사용량 한도', process: '프로세스 오류', no_commit: '커밋 없음', push_pr: 'push·PR 실패' };
+
+const APPS = [
+  { code: 'LK', tasks: 270, repo: '~/code/lk' },
+  { code: 'HR', tasks: 0, repo: '~/code/hr' },
+  { code: 'CM', tasks: 26, repo: '~/code/cm' },
+  { code: 'OA', tasks: 0, repo: null },
+  { code: 'TH', tasks: 4, repo: '~/code/th' },
+];
+
+const TASKS = {
+  'LK-214': { app: 'LK', title: '결제 내역 CSV 내보내기', status: 'input', size: 'M', tags: ['정산', '내보내기'], deps: [['LK-180', 'done']], branch: 'hub/lk-214', pr: null,
+    desc: '가맹점 관리자가 기간을 골라 결제 내역을 CSV 파일로 받는다.', items: ['기간 필터는 목록 화면에서 고른 값을 그대로 쓴다', '10만 행을 넘으면 백그라운드 작업으로 돌리고 끝나면 알린다', '금액은 원 단위 정수, 날짜는 YYYY-MM-DD'],
+    notes: [['10/24 18:02', '상태', '할 일 → 진행 중'], ['09:01', 'run', 'run 1041 시작'], ['09:06', 'run', 'run 1041 질문: CSV 컬럼 순서']] },
+  'CM-19': { app: 'CM', title: '알림 설정 화면 분리', status: 'input', size: 'M', tags: ['설정'], deps: [['CM-12', 'done']], branch: 'hub/cm-19', pr: null,
+    desc: '알림 설정을 프로필 화면에서 떼어 별도 화면으로 만든다.', items: ['푸시, 이메일, 마케팅 수신을 한 화면에서 켜고 끈다', '바뀐 값은 바로 저장한다'],
+    notes: [['10/25 11:40', '상태', '할 일 → 진행 중'], ['07:08', 'run', 'run 1036 시작'], ['07:12', 'run', '질문에 답변: 바로 저장, 500ms 디바운스'], ['07:17', 'run', 'run 1036 질문: 기존 컴포넌트 삭제 여부']] },
+  'LK-198': { app: 'LK', title: '주문 상세 API 응답 캐시', status: 'doing', size: 'S', tags: ['성능'], deps: [], branch: 'hub/lk-198', pr: null,
+    desc: '주문 상세 조회가 같은 주문을 짧은 간격으로 반복해서 읽는다. 30초 캐시를 둔다.', items: ['주문 상태가 바뀌면 캐시를 지운다', '캐시 적중률을 로그로 남긴다'],
+    notes: [['어제 17:40', 'run', 'run 1011 시작'], ['어제 17:52', 'run', 'run 1011 중지'], ['02:48', 'run', 'run 1029 시작'], ['03:12', 'run', 'run 1029 실패: 사용량 한도']] },
+  'LK-231': { app: 'LK', title: '세션 만료 시 다시 로그인 유도', status: 'doing', size: 'S', tags: ['인증'], deps: [['LK-229', 'doing']], branch: 'hub/lk-231', pr: null,
+    desc: '세션이 만료되면 지금 화면을 기억해 두고 로그인 화면으로 보낸다.', items: ['로그인하면 원래 화면으로 돌아온다', '작성 중이던 입력값 보존은 이번 범위가 아니다'],
+    notes: [['06:22', 'run', 'run 1033 시작'], ['06:40', 'run', 'run 1033 실패: 커밋 없음. 의존 task LK-229의 토큰 갱신이 아직 없어 진행하지 못함']] },
+  'CM-17': { app: 'CM', title: '프로필 이미지 업로드 크기 제한', status: 'doing', size: 'S', tags: ['업로드'], deps: [], branch: 'hub/cm-17', pr: null,
+    desc: '5MB를 넘는 이미지는 올리기 전에 줄인다.', items: ['긴 변 기준 2048px로 줄인다', 'HEIC는 JPEG로 바꾼다'],
+    notes: [['07:31', 'run', 'run 1035 시작'], ['07:55', 'run', 'run 1035 실패: push·PR']] },
+  'LK-187': { app: 'LK', title: '가맹점 목록 정렬 옵션', status: 'review', size: 'S', tags: ['가맹점'], deps: [], branch: 'hub/lk-187', pr: 412, summary: '정렬 기준 드롭다운 추가, 기본값은 최근 거래순',
+    desc: '가맹점 목록을 이름순, 최근 거래순, 매출순으로 정렬한다.', items: ['고른 정렬은 URL 쿼리에 남긴다', '기본값은 최근 거래순'],
+    notes: [['어제 22:10', 'run', 'run 1018 시작'], ['어제 22:33', 'run', 'run 1018 완료 · PR #412'], ['어제 22:33', '상태', '진행 중 → 리뷰']] },
+  'LK-203': { app: 'LK', title: '환불 사유 코드 정리', status: 'review', size: 'M', tags: ['환불'], deps: [], branch: 'hub/lk-203', pr: 415, summary: '사유 코드를 enum으로 묶고 마이그레이션 1건 추가',
+    desc: '흩어진 환불 사유 문자열을 코드 하나로 모은다.', items: ['기존 데이터는 마이그레이션으로 옮긴다', '관리자 화면 선택지도 같은 코드를 쓴다'],
+    notes: [['어제 23:02', 'run', 'run 1021 시작'], ['어제 23:41', 'run', 'run 1021 완료 · PR #415'], ['어제 23:41', '상태', '진행 중 → 리뷰']] },
+  'LK-220': { app: 'LK', title: '대시보드 기간 필터 기본값', status: 'review', size: 'S', tags: ['대시보드'], deps: [], branch: 'hub/lk-220', pr: 418, summary: '기본 기간을 최근 7일로 바꾸고 URL 쿼리에 기간을 남김',
+    desc: '대시보드를 열 때 기본 기간을 최근 7일로 한다.', items: ['새로고침해도 고른 기간을 유지한다'],
+    notes: [['00:15', 'run', 'run 1024 시작'], ['00:29', 'run', 'run 1024 완료 · PR #418'], ['00:29', '상태', '진행 중 → 리뷰']] },
+  'LK-226': { app: 'LK', title: '정산 CSV 한글 깨짐', status: 'review', size: 'S', tags: ['정산'], deps: [], branch: 'hub/lk-226', pr: 421, summary: '엑셀에서 열 때 깨지지 않도록 UTF-8 BOM 추가',
+    desc: '정산 CSV를 엑셀에서 열면 한글이 깨진다.', items: ['UTF-8 BOM을 붙인다', '기존 다운로드 파일 이름은 그대로 둔다'],
+    notes: [['01:05', 'run', 'run 1027 시작'], ['01:18', 'run', 'run 1027 완료 · PR #421'], ['01:18', '상태', '진행 중 → 리뷰']] },
+  'LK-240': { app: 'LK', title: '가맹점 정산 리포트 PDF', status: 'doing', size: 'L', tags: ['정산', 'PDF'], deps: [['LK-201', 'done']], branch: 'hub/lk-240', pr: null,
+    desc: '월별 정산 내역을 가맹점에 보낼 PDF로 만든다.', items: ['표가 여러 쪽에 걸치면 머리 행을 반복한다', '합계 행은 마지막 쪽에 둔다', '가맹점 로고는 있으면 넣는다'],
+    notes: [['10/26 15:20', '상태', '할 일 → 진행 중'], ['09:08', 'run', 'run 1047 시작']] },
+};
+
+const RUNS = [
+  { id: 1041, task: 'LK-214', kind: 'implement', status: 'input', start: at(9, 1), waitSince: at(9, 6), cost: 0.62, answers: [],
+    question: 'CSV 컬럼 순서를 기존 엑셀 내보내기와 맞출까요, API 응답 필드 순서를 따를까요?\n기존 엑셀은 "결제일, 가맹점, 금액, 상태, 승인번호" 순서이고, API는 승인번호가 맨 앞에 있습니다.' },
+  { id: 1036, task: 'CM-19', kind: 'implement', status: 'input', start: at(7, 8), waitSince: at(7, 17), cost: 1.12,
+    question: '기존 NotificationSettings 컴포넌트를 지워도 될까요? ProfileScreen과 OnboardingStep3 두 곳에서 아직 쓰고 있어서, 지우려면 두 화면도 같이 고쳐야 합니다.',
+    answers: [{ q: '설정 값을 바꾸면 바로 저장할까요, 저장 버튼을 둘까요?', a: '바로 저장해 주세요. 500ms 디바운스.', t: at(7, 12) }] },
+  { id: 1029, task: 'LK-198', kind: 'implement', status: 'failed', start: at(2, 48), end: at(3, 12), cost: 1.84, reason: 'rate_limit', detail: '5시간 창 100% 소진 · 08:10에 초기화됨' },
+  { id: 1033, task: 'LK-231', kind: 'implement', status: 'failed', start: at(6, 22), end: at(6, 40), cost: 0.91, reason: 'no_commit', detail: '변경 없이 끝남 · 18턴' },
+  { id: 1035, task: 'CM-17', kind: 'implement', status: 'failed', start: at(7, 31), end: at(7, 55), cost: 1.37, reason: 'push_pr', detail: 'gh pr create: 같은 브랜치의 PR이 이미 있음 (HTTP 422)' },
+  { id: 1047, task: 'LK-240', kind: 'implement', status: 'running', start: at(9, 8), cost: 0.48, logs: 'pdf', answers: [] },
+  { id: 1048, task: null, app: 'TH', kind: 'idea_gen', status: 'running', start: at(9, 16), cost: 0.21, logs: 'idea', answers: [] },
+  { id: 1018, task: 'LK-187', kind: 'implement', status: 'done', start: at(22, 10) - DAY, end: at(22, 33) - DAY, cost: 0.88 },
+  { id: 1021, task: 'LK-203', kind: 'implement', status: 'done', start: at(23, 2) - DAY, end: at(23, 41) - DAY, cost: 2.04 },
+  { id: 1024, task: 'LK-220', kind: 'implement', status: 'done', start: at(0, 15), end: at(0, 29), cost: 0.57 },
+  { id: 1027, task: 'LK-226', kind: 'implement', status: 'done', start: at(1, 5), end: at(1, 18), cost: 0.43 },
+  { id: 1011, task: 'LK-198', kind: 'implement', status: 'stopped', start: at(17, 40) - DAY, end: at(17, 52) - DAY, cost: 0.35 },
+];
+
+const LOGS = {
+  pdf: [['tool_use', 'Read  src/settlement/report.service.ts'], ['assistant', '합계 행이 쪽 경계에서 잘리지 않도록 표 나누는 부분부터 고칩니다.'], ['tool_use', 'Edit  src/settlement/pdf/table.ts'], ['tool_use', 'Bash  pnpm test settlement'], ['tool_result', 'Tests  14 passed, 14 total'], ['assistant', '가맹점 이름이 긴 경우를 확인합니다.']],
+  idea: [['hub', '저장소 맥락 모으는 중'], ['tool_use', 'Glob  src/**/*.tsx'], ['tool_use', 'Read  docs/direction.md'], ['assistant', '방향성 메모의 "첫 사용 경험"을 기준으로 후보를 좁힙니다.'], ['tool_use', 'Grep  "onboarding" src/']],
+  resume: [['hub', '같은 세션으로 재개'], ['assistant', '받은 답변대로 이어서 작업합니다.'], ['tool_use', 'Read  package.json'], ['tool_use', 'Bash  pnpm lint'], ['tool_result', '0 problems']],
+  rerun: [['hub', 'worktree 만드는 중'], ['system', '세션 시작'], ['tool_use', 'Read  CLAUDE.md'], ['assistant', '이전 run의 메모를 읽고 이어서 진행합니다.'], ['tool_use', 'Bash  pnpm test']],
+};
+const Q_LIVE = '가맹점 이름이 40자를 넘으면 PDF 표 칸을 넘칩니다. 말줄임표로 자를까요, 두 줄로 줄바꿈할까요?';
+
+const IDEAS = [
+  { app: 'TH', no: 1, title: '첫 실행 안내 흐름 정리', problem: '처음 설치한 사용자가 첫 화면에서 다음에 할 일을 찾지 못한다.', tasks: 4, auto: true, ver: 2, created: at(2, 0), status: 'pending' },
+  { app: 'LK', no: 7, title: '정산 지연 알림', problem: '정산이 늦어져도 가맹점은 문의하기 전까지 알 수 없다.', tasks: 6, auto: true, ver: 1, created: at(2, 4), status: 'pending' },
+];
+
+const RECENT = [
+  { run: 1044, id: 'LK-219', app: 'LK', title: '거래 목록 무한 스크롤', end: '08:52', dur: '14분', cost: '$0.71' },
+  { run: 1042, id: 'CM-15', app: 'CM', title: '탈퇴 사유 선택지', end: '08:31', dur: '9분', cost: '$0.38' },
+  { run: 1039, id: 'TH-4', app: 'TH', title: '설정 화면 다크 모드 대응', end: '07:58', dur: '22분', cost: '$1.06' },
+  { run: 1037, id: 'LK-217', app: 'LK', title: '매출 그래프 툴팁 위치', end: '07:20', dur: '11분', cost: '$0.52' },
+];
+
+const STUBS = {
+  tasks: { title: 'task', code: 'S2 · S3', stage: 'D2', scene: '장면 2, 4', items: ['상태별 목록: 답변 대기 → 진행 중 → 리뷰 → 할 일. 완료·취소는 접고 최근 20개만', '칸반 보기로 바꾸기', '행: ID, 제목, 크기, 태그, 막힘, PR, 실행 중 표시', '필터: 앱, 상태, 태그, 크기, 제목 검색', 'task 만들기: 제목, 설명, 크기, 의존 task', 'task 상세는 지금 오른쪽 패널의 초안을 다듬습니다 (문서 목록 추가)'] },
+  run: { title: 'run', code: 'S4', stage: 'D2', scene: '장면 2, 4', items: ['답변 대기일 때 맨 위에 질문 카드와 보낸 답변 기록', '로그 실시간 이어 붙이기, 아래로 따라가기 켜고 끄기', '로그 종류별 모양: hub, assistant, tool_use, tool_result(접힘), stderr·rate_limit, result', '끝나면 결과 요약, 실패하면 사유와 다시 실행'] },
+  ideas: { title: '기획함', code: 'S5', stage: 'D3', scene: '장면 1', items: ['상태 탭(검토 대기, 수정 중, 승인, 반려)과 앱 필터', '문제, 제안, 시나리오, 명세, 영향 범위를 문서처럼', '예상 task와 의존 화살표: 승인하면 만들어질 task 미리보기', '버전 바꿔 보기, 앞 버전과 달라진 곳 강조', '승인 · 수정 요청 · 반려, 즉시 생성'] },
+  apps: { title: '앱 설정', code: 'S6', stage: 'D4', scene: '장면 5', items: ['앱 5개의 저장소, task 수, 자동 생성 주기', '기본: 이름, 저장소 경로, 기본 브랜치, 작업 폴더 이름, setup_cmd, 가드', '기획: 방향성 메모, 주기 선택기(매일 / 평일 / 매주 ○요일, ○시 → cron)', '실행: 허용 도구(Hub 기본값 / 직접 지정)', '실수 기록 켜고 끄기, Task Master 가져오기'] },
+  rules: { title: '규칙', code: 'S7', stage: 'D4', scene: '장면 5', items: ['전역 규칙과 앱별 규칙, 순서 바꾸기·추가·삭제', '저장 전 ~/.claude/rules/hub-rules.md에 써질 내용 미리보기', '저장 후 "새 세션부터 적용" 안내'] },
+  costs: { title: '비용·사용량', code: 'S8', stage: 'D4', scene: '장면 6', items: ['5시간·7일 소진율, 초기화 시각, 받은 시각, 80% 선', '이번 달 합계, 최근 12개월, 앱별·종류별, 날짜별', '구독 실행이라 API 환산값이라는 설명'] },
+};
+
+const TOK_N = [
+  ['--bg-app', 'oklch(0.975 0.003 260)', 'oklch(0.175 0.006 260)', '화면 바탕'],
+  ['--bg-surface', 'oklch(1 0 0)', 'oklch(0.205 0.007 260)', '목록, 패널, 입력란'],
+  ['--bg-sunken', 'oklch(0.96 0.004 260)', 'oklch(0.155 0.006 260)', '사이드바, 표 머리'],
+  ['--bg-hover', 'oklch(0.95 0.005 260)', 'oklch(0.245 0.008 260)', '행에 마우스를 올렸을 때'],
+  ['--bg-active', 'oklch(0.925 0.007 260)', 'oklch(0.28 0.01 260)', '선택된 메뉴, 막대 바탕'],
+  ['--line', 'oklch(0.91 0.005 260)', 'oklch(0.29 0.008 260)', '구분선, 행 사이'],
+  ['--line-strong', 'oklch(0.84 0.007 260)', 'oklch(0.36 0.01 260)', '버튼·입력란 테두리'],
+  ['--text-1', 'oklch(0.24 0.012 260)', 'oklch(0.93 0.005 260)', '본문, 제목'],
+  ['--text-2', 'oklch(0.43 0.012 260)', 'oklch(0.76 0.008 260)', '보조 글'],
+  ['--text-3', 'oklch(0.53 0.01 260)', 'oklch(0.64 0.008 260)', '시각, 개수, 라벨'],
+  ['--ink', 'oklch(0.26 0.014 260)', 'oklch(0.9 0.006 260)', '주 버튼, 알림 바탕'],
+  ['--focus', 'oklch(0.55 0.14 255)', 'oklch(0.72 0.12 255)', '포커스 테두리'],
+].map(([name, light, dark, use]) => ({ key: name, name, light, dark, use }));
+
+const TOK_S = [
+  { name: '주의', key: 'attn', sample: '답변 대기', use: '답변 대기, 사용량 80% 이상', l: ['oklch(0.52 0.12 65)', 'oklch(0.96 0.045 85)', 'oklch(0.85 0.09 80)'], d: ['oklch(0.82 0.12 80)', 'oklch(0.27 0.045 75)', 'oklch(0.42 0.08 75)'] },
+  { name: '진행', key: 'prog', sample: '실행 중', use: '실행 중, 진행 중', l: ['oklch(0.5 0.15 255)', 'oklch(0.96 0.025 255)', 'oklch(0.85 0.06 255)'], d: ['oklch(0.76 0.11 255)', 'oklch(0.26 0.045 255)', 'oklch(0.42 0.09 255)'] },
+  { name: '확인 필요', key: 'check', sample: '리뷰', use: '리뷰, 검토 대기 기획', l: ['oklch(0.5 0.15 300)', 'oklch(0.96 0.025 300)', 'oklch(0.86 0.06 300)'], d: ['oklch(0.77 0.11 300)', 'oklch(0.27 0.045 300)', 'oklch(0.42 0.09 300)'] },
+  { name: '위험', key: 'risk', sample: '실패', use: '실패, 오류', l: ['oklch(0.52 0.18 27)', 'oklch(0.96 0.025 27)', 'oklch(0.86 0.07 27)'], d: ['oklch(0.74 0.14 25)', 'oklch(0.27 0.05 25)', 'oklch(0.43 0.1 25)'] },
+  { name: '완료', key: 'done', sample: '완료', use: '완료, 승인. 눈에 덜 띄게', l: ['oklch(0.55 0.04 165)', 'oklch(0.96 0.012 165)', 'oklch(0.87 0.03 165)'], d: ['oklch(0.7 0.04 165)', 'oklch(0.25 0.015 165)', 'oklch(0.38 0.03 165)'] },
+].map(t => ({ key: t.key, name: t.name, sample: t.sample, use: t.use, vars: '--' + t.key + ' · -bg · -line', lfg: t.l[0], lbg: t.l[1], lline: t.l[2], dfg: t.d[0], dbg: t.d[1], dline: t.d[2] }));
+
+const TOK_T = [
+  ['--font-sans', 'IBM Plex Sans KR 400 · 500 · 600', '본문, 제목, 버튼'],
+  ['--font-mono', 'IBM Plex Mono 400 · 500 · 600', 'ID, 브랜치, 경로, 로그, 숫자'],
+  ['글자 크기', '11 · 12 · 13 · 14 · 17 · 20px', '본문 14, 버튼·표 13, 라벨 12'],
+  ['행 높이', '36px 한 줄 · 54px 두 줄', '목록 행'],
+  ['간격', '4 · 8 · 12 · 16 · 24 · 28px', '4의 배수'],
+  ['모서리', '4 · 6 · 8 · 10px', '상태 표시 · 버튼 · 목록 상자 · 대화 상자'],
+  ['너비', '사이드바 220 · 상세 패널 460 · 최소 1,024px', ''],
+].map(([name, value, use]) => ({ key: name, name, value, use }));
+
+const MENU = [['today', '오늘'], ['tasks', 'task'], ['ideas', '기획'], ['costs', '비용'], ['rules', '규칙'], ['apps', '앱 설정']];
+
+class Component extends DCLogic {
+  state = {
+    screen: 'today', app: 'all', theme: 'system',
+    tasks: clone(TASKS), runs: clone(RUNS), ideas: clone(IDEAS),
+    drafts: {}, panel: null, runView: null, toast: null, confirm: null,
+    palette: false, pq: '', pi: 0, el: 0, note: '', vw: 1440,
+  };
+  nextRun = 1049;
+  paletteRef = React.createRef();
+
+  componentDidMount() {
+    this.t0 = Date.now();
+    this.onResize = () => this.setState({ vw: window.innerWidth });
+    window.addEventListener('resize', this.onResize);
+    this.onResize();
+    let th = 'system';
+    try { th = localStorage.getItem('hub-sian-theme') || 'system'; } catch (e) {}
+    this.applyTheme(th);
+    this.iv = setInterval(() => this.tick(), 1000);
+    this.onKeyDown = e => this.key(e);
+    window.addEventListener('keydown', this.onKeyDown);
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this.onResize); clearInterval(this.iv); clearTimeout(this.tt); window.removeEventListener('keydown', this.onKeyDown); }
+  componentDidUpdate(pp, ps) { if (this.state.palette && !ps.palette) setTimeout(() => this.paletteRef.current && this.paletteRef.current.focus(), 0); }
+
+  now() { return T0 + this.state.el; }
+  tick() {
+    const el = (Date.now() - this.t0) / 1000;
+    if (!this.fired && (this.props.liveEvents ?? true) && el > 25) {
+      const r = this.state.runs.find(x => x.id === 1047);
+      if (r && r.status === 'running') {
+        this.fired = true;
+        r.status = 'input'; r.waitSince = T0 + el; r.question = Q_LIVE;
+        this.state.tasks['LK-240'].status = 'input';
+        this.state.tasks['LK-240'].notes.push([hm(T0 + el), 'run', 'run 1047 질문: 긴 가맹점 이름 처리']);
+        this.showToast('LK-240 · 질문이 왔습니다');
+      }
+    }
+    this.setState({ el });
+  }
+  applyTheme(th) {
+    const el = document.documentElement;
+    if (th === 'system') el.removeAttribute('data-theme'); else el.setAttribute('data-theme', th);
+    try { localStorage.setItem('hub-sian-theme', th); } catch (e) {}
+    this.setState({ theme: th });
+  }
+  key(e) {
+    const s = this.state;
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); this.setState({ palette: !s.palette, pq: '', pi: 0 }); return; }
+    if (e.key === 'Escape') {
+      if (s.palette) return this.setState({ palette: false });
+      if (s.confirm) return this.setState({ confirm: null });
+      if (s.panel) return this.setState({ panel: null });
+    }
+  }
+  showToast(msg, undo) {
+    clearTimeout(this.tt);
+    this.setState({ toast: { msg, undo } });
+    this.tt = setTimeout(() => this.setState({ toast: null }), undo ? 6000 : 3500);
+  }
+  note(id, k, text) { this.state.tasks[id].notes.push([hm(this.now()), k, text]); }
+
+  send(id) {
+    const s = this.state; const text = (s.drafts[id] || '').trim(); if (!text) return;
+    const r = s.runs.find(x => x.id === id); const now = this.now();
+    r.answers.push({ q: r.question, a: text, t: now });
+    r.question = null; r.status = 'running'; r.resumeAt = now; r.logs = 'resume';
+    s.tasks[r.task].status = 'doing';
+    this.note(r.task, 'run', 'run ' + id + ' 답변 보냄 · 같은 세션으로 재개');
+    this.setState({ drafts: { ...s.drafts, [id]: '' } });
+    this.showToast(r.task + ' · 답변을 보냈습니다. 같은 세션으로 이어서 실행합니다');
+  }
+  startRun(taskId) {
+    const s = this.state; const id = this.nextRun++; const t = s.tasks[taskId];
+    s.runs.push({ id, task: taskId, kind: 'implement', status: 'running', start: this.now(), cost: 0, logs: 'rerun', answers: [] });
+    if (t.status === 'todo') this.note(taskId, '상태', '할 일 → 진행 중');
+    t.status = 'doing';
+    this.note(taskId, 'run', 'run ' + id + ' 시작');
+    this.forceUpdate();
+    return id;
+  }
+  rerun(id) {
+    const old = this.state.runs.find(x => x.id === id); old.superseded = true;
+    const nid = this.startRun(old.task);
+    this.showToast(old.task + ' · 다시 실행합니다 (run ' + nid + ')');
+  }
+  markDone(id) {
+    const t = this.state.tasks[id]; const prev = t.status;
+    t.status = 'done'; this.note(id, '상태', '리뷰 → 완료'); this.forceUpdate();
+    this.showToast(id + ' · 완료로 바꿨습니다', () => { t.status = prev; t.notes.pop(); clearTimeout(this.tt); this.setState({ toast: null }); });
+  }
+  askStop(id) {
+    this.setState({ confirm: {
+      title: '이 run을 중지할까요?',
+      body: 'run ' + id + ' · 실행 중인 프로세스를 멈춥니다.\n지금까지의 로그와 worktree는 남습니다.',
+      label: '중지',
+      onOk: () => {
+        const r = this.state.runs.find(x => x.id === id); r.status = 'stopped'; r.end = this.now();
+        if (r.task) this.note(r.task, 'run', 'run ' + id + ' 중지');
+        this.setState({ confirm: null }); this.showToast('run ' + id + ' · 중지했습니다');
+      } } });
+  }
+  setStatus(id, to) {
+    const t = this.state.tasks[id];
+    const apply = () => {
+      const from = t.status; t.status = to;
+      this.note(id, '상태', TASK_ST[from][0] + ' → ' + TASK_ST[to][0]);
+      this.setState({ confirm: null });
+      this.showToast(id + ' · ' + TASK_ST[from][0] + ' → ' + TASK_ST[to][0]);
+    };
+    if (to === 'cancelled') this.setState({ confirm: { title: '이 task를 취소할까요?', body: id + ' · ' + t.title + '\n취소한 task는 목록에서 접힌 곳으로 옮겨집니다. 나중에 할 일로 되돌릴 수 있습니다.', label: 'task 취소', onOk: apply } });
+    else apply();
+  }
+
+  renderVals() {
+    const s = this.state, now = this.now(), tasks = s.tasks;
+    const empty = (this.props.scenario ?? '기본') === '처리할 일 없음';
+    const wsOk = (this.props.ws ?? '연결됨') === '연결됨';
+    const appOf = r => r.task ? tasks[r.task].app : r.app;
+    const okApp = a => s.app === 'all' || a === s.app;
+    const runs = empty ? [] : s.runs;
+    const open = id => () => this.setState({ panel: id, note: '' });
+    const go = (screen, extra) => () => this.setState({ screen, ...(extra || {}) });
+    const viewRun = id => go('run', { runView: id });
+
+    const inputRows = runs.filter(r => r.status === 'input' && okApp(appOf(r))).sort((a, b) => a.waitSince - b.waitSince).map(r => {
+      const t = tasks[r.task]; const d = s.drafts[r.id] || ''; const last = r.answers[r.answers.length - 1]; const ok = !!d.trim();
+      return { key: r.id, id: r.task, title: t.title, runNo: r.id, waited: dur(now - r.waitSince) + '째 대기', question: r.question,
+        hasHistory: !!last, historyCount: r.answers.length, historyText: last ? last.a : '', historyTime: last ? hm(last.t) : '',
+        draft: d, onDraft: e => { const v = e.target.value; this.setState(st => ({ drafts: { ...st.drafts, [r.id]: v } })); },
+        onKey: e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); this.send(r.id); } },
+        onSend: () => this.send(r.id), sendDisabled: !ok, sendOpacity: ok ? 1 : 0.4, sendCursor: ok ? 'pointer' : 'not-allowed',
+        onOpen: open(r.task), onLog: viewRun(r.id) };
+    });
+    const failedRows = runs.filter(r => r.status === 'failed' && !r.superseded && okApp(appOf(r)) && !['done', 'cancelled'].includes(tasks[r.task].status)).sort((a, b) => b.end - a.end).map(r => ({
+      key: r.id, id: r.task, title: tasks[r.task].title, reason: FAIL[r.reason], detail: 'run ' + r.id + ' · ' + r.detail, time: hm(r.end),
+      onRerun: () => this.rerun(r.id), onLog: viewRun(r.id), onOpen: open(r.task) }));
+    const reviewRows = (empty ? [] : Object.keys(tasks)).filter(id => tasks[id].status === 'review' && okApp(tasks[id].app)).map(id => {
+      const t = tasks[id];
+      return { key: id, id, title: t.title, pr: '#' + t.pr, branch: t.branch, summary: t.summary,
+        onPR: e => { e.preventDefault(); this.showToast('GitHub에서 PR #' + t.pr + ' 열기 (시안)'); }, onDone: () => this.markDone(id), onOpen: open(id) };
+    });
+    const ideaRows = (empty ? [] : s.ideas).filter(i => i.status === 'pending' && okApp(i.app)).map(i => ({
+      key: i.app + i.no, app: i.app, no: '#' + i.no, title: i.title, problem: i.problem, auto: i.auto,
+      meta: 'v' + i.ver + ' · ' + hm(i.created), tasks: '예상 task ' + i.tasks + '개', onOpen: go('ideas') }));
+    const runningRows = runs.filter(r => r.status === 'running' && okApp(appOf(r))).map(r => {
+      const lg = LOGS[r.logs]; const idx = Math.floor(Math.max(0, now - (r.resumeAt || r.start)) / 4) % lg.length; const isIdea = r.kind === 'idea_gen';
+      return { key: r.id, id: r.task || appOf(r), title: isIdea ? appOf(r) + ' 기획 생성' : tasks[r.task].title, kind: r.kind + ' · run ' + r.id,
+        elapsed: clock(now - r.start), logKind: lg[idx][0], logText: lg[idx][1],
+        onLog: viewRun(r.id), onStop: () => this.askStop(r.id), onOpen: isIdea ? go('ideas') : open(r.task) };
+    });
+    const todoCount = inputRows.length + failedRows.length + reviewRows.length + ideaRows.length;
+    const recentRows = RECENT.filter(x => okApp(x.app)).map(x => ({ ...x, key: x.run }));
+
+    const apps = [{ key: 'all', label: '전체', count: 300, note: '' }, ...APPS.map(a => ({ key: a.code, label: a.code, count: a.tasks, note: a.repo ? '' : '저장소 없음' }))].map(a => {
+      const on = s.app === a.key;
+      return { ...a, bg: on ? 'var(--bg-active)' : 'transparent', fg: on ? 'var(--text-1)' : 'var(--text-2)', fw: on ? 600 : 500, onClick: () => this.setState({ app: a.key }) };
+    });
+    const menu = MENU.map(([k, label]) => {
+      const on = s.screen === k || (k === 'tasks' && s.screen === 'run');
+      const badge = k === 'today' ? todoCount : k === 'ideas' ? ideaRows.length : 0;
+      return { key: k, label, bg: on ? 'var(--bg-active)' : 'transparent', fg: on ? 'var(--text-1)' : 'var(--text-2)', fw: on ? 600 : 500,
+        hasBadge: badge > 0, badge, badgeBg: k === 'today' ? 'var(--attn-bg)' : 'var(--check-bg)', badgeFg: k === 'today' ? 'var(--attn)' : 'var(--check)',
+        onClick: go(k) };
+    });
+    const themes = [['system', '시스템'], ['light', '라이트'], ['dark', '다크']].map(([k, label]) => {
+      const on = s.theme === k;
+      return { key: k, label, bg: on ? 'var(--bg-surface)' : 'transparent', fg: on ? 'var(--text-1)' : 'var(--text-3)', shadow: on ? '0 1px 2px oklch(0 0 0 / 0.14)' : 'none', onClick: () => this.applyTheme(k) };
+    });
+
+    const runningCount = runningRows.length;
+    const usage7 = 76, usage5 = 41;
+    const liveDot = React.createElement('span', { style: { display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: runningCount ? 'var(--prog)' : 'var(--line-strong)', animation: runningCount ? 'hubPulse 1.6s ease-in-out infinite' : 'none' } });
+
+    let p = null;
+    if (s.panel && tasks[s.panel]) {
+      const id = s.panel, t = tasks[id], [sl, tone] = TASK_ST[t.status], nexts = NEXT[t.status] || [];
+      const truns = s.runs.filter(r => r.task === id).sort((a, b) => b.start - a.start);
+      const active = truns.some(r => r.status === 'running' || r.status === 'input');
+      const canRun = !active && ['todo', 'doing'].includes(t.status);
+      const addNote = () => { const v = s.note.trim(); if (!v) return; this.note(id, '메모', v); this.setState({ note: '' }); };
+      p = { id, app: t.app, title: t.title, statusLabel: sl, fg: TONE[tone].fg, bg: TONE[tone].bg, blocked: t.deps.some(d => d[1] !== 'done'),
+        transitions: ['todo', 'doing', 'review', 'done', 'cancelled'].filter(k => k !== t.status).map(k => {
+          const ok = nexts.includes(k);
+          return { key: k, label: TASK_ST[k][0], disabled: !ok, opacity: ok ? 1 : 0.4, cursor: ok ? 'pointer' : 'not-allowed',
+            title: ok ? sl + ' → ' + TASK_ST[k][0] : sl + '에서는 ' + TASK_ST[k][0] + '(으)로 갈 수 없습니다', onClick: () => ok && this.setStatus(id, k) };
+        }),
+        runDisabled: !canRun, runOpacity: canRun ? 1 : 0.4, runCursor: canRun ? 'pointer' : 'not-allowed',
+        runTitle: canRun ? '실행 (r)' : active ? '이미 실행 중인 run이 있습니다' : sl + ' 상태에서는 실행할 수 없습니다',
+        onRun: () => { if (canRun) { const nid = this.startRun(id); this.showToast(id + ' · 실행합니다 (run ' + nid + ')'); } },
+        size: t.size, branch: t.branch, hasPR: !!t.pr, noPR: !t.pr, pr: 'PR #' + t.pr,
+        onPR: e => { e.preventDefault(); this.showToast('GitHub에서 PR #' + t.pr + ' 열기 (시안)'); },
+        tags: t.tags.join(', '), deps: t.deps.map(([did, st]) => ({ key: did, id: did, label: TASK_ST[st][0], fg: st === 'done' ? 'var(--text-3)' : 'var(--attn)' })), noDeps: !t.deps.length,
+        desc: t.desc, items: t.items, runCount: truns.length, hasRuns: truns.length > 0, noRuns: !truns.length,
+        runs: truns.map(r => { const [l, tn] = RUN_ST[r.status]; return { key: r.id, no: 'run ' + r.id, label: l, fg: TONE[tn].fg, bg: TONE[tn].bg, start: hm(r.start), dur: r.end ? dur(r.end - r.start) : clock(now - r.start), cost: '$' + r.cost.toFixed(2), onClick: viewRun(r.id) }; }),
+        notes: t.notes.map((n, i) => ({ key: i, t: n[0], k: n[1], text: n[2] })),
+        noteDraft: s.note, onNoteDraft: e => this.setState({ note: e.target.value }), onNoteKey: e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) addNote(); }, onAddNote: addNote };
+    }
+
+    let stub = null;
+    if (s.screen === 'run' || STUBS[s.screen]) {
+      const base = s.screen === 'run' ? STUBS.run : STUBS[s.screen];
+      stub = { ...base, hasRun: false, fields: [], statusLabel: '', fg: '', bg: '' };
+      const r = s.screen === 'run' && s.runs.find(x => x.id === s.runView);
+      if (r) {
+        const [l, tn] = RUN_ST[r.status]; const t = r.task ? tasks[r.task] : null;
+        stub = { ...stub, title: 'run ' + r.id, hasRun: true, statusLabel: l, fg: TONE[tn].fg, bg: TONE[tn].bg,
+          fields: [['task', t ? r.task + '  ' + t.title : appOf(r) + ' 기획 생성'], ['종류', r.kind], ['브랜치', t ? t.branch : '–'], ['worktree', t ? '~/.hub/wt/' + r.task.toLowerCase() : '–'],
+            ['비용', '$' + r.cost.toFixed(2)], ['시작', hm(r.start)], ['종료', r.end ? hm(r.end) : '–'], ...(r.reason ? [['실패 사유', FAIL[r.reason] + ' · ' + r.detail]] : []), ...(r.question ? [['질문', r.question]] : [])]
+            .map(([k, v]) => ({ key: k, k, v })) };
+      }
+    }
+
+    const PAL = [...MENU.map(([k, l]) => ({ key: 'm' + k, label: l, sub: '화면', run: go(k) })), { key: 'tok', label: '디자인 토큰', sub: '화면', run: go('tokens') },
+      ...Object.keys(tasks).map(id => ({ key: id, label: id + '  ' + tasks[id].title, sub: TASK_ST[tasks[id].status][0], run: () => this.setState({ panel: id, note: '' }) })),
+      { key: 'theme', label: '라이트 · 다크 바꾸기', sub: '테마', run: () => { const dark = s.theme === 'dark' || (s.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches); this.applyTheme(dark ? 'light' : 'dark'); } }];
+    const q = s.pq.trim().toLowerCase();
+    const pal = PAL.filter(x => !q || x.label.toLowerCase().includes(q)).slice(0, 9);
+    const pi = Math.max(0, Math.min(s.pi, pal.length - 1));
+    const pick = x => { this.setState({ palette: false }); x.run(); };
+
+    const cf = s.confirm || { title: '', body: '', label: '', onOk: () => {} };
+
+    return {
+      apps, menu, themes, liveDot, runningCount,
+      usage7, usage5, usage7w: usage7 + '%', usage7color: usage7 >= 80 ? 'var(--attn)' : 'var(--text-3)', usageAt: '09:18',
+      usageTitle: '마지막으로 run이 돌 때 받은 값입니다. 5시간 창은 11:40, 7일 창은 10월 30일 07:00에 초기화됩니다. 80%를 넘으면 자동 생성이 멈춥니다.',
+      wsOk, wsDown: !wsOk,
+      openPalette: () => this.setState({ palette: true, pq: '', pi: 0 }), closePalette: () => this.setState({ palette: false }), stop: e => e.stopPropagation(),
+      paletteOpen: s.palette, paletteRef: this.paletteRef, pq: s.pq, palEmpty: pal.length === 0,
+      onPq: e => this.setState({ pq: e.target.value, pi: 0 }),
+      onPkey: e => {
+        if (e.key === 'ArrowDown') { e.preventDefault(); this.setState({ pi: Math.min(pi + 1, pal.length - 1) }); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); this.setState({ pi: Math.max(pi - 1, 0) }); }
+        else if (e.key === 'Enter' && pal[pi] && !e.nativeEvent.isComposing) { e.preventDefault(); pick(pal[pi]); }
+      },
+      palItems: pal.map((x, i) => ({ key: x.key, label: x.label, sub: x.sub, bg: i === pi ? 'var(--bg-hover)' : 'transparent', onClick: () => pick(x), onHover: () => this.setState({ pi: i }) })),
+      isToday: s.screen === 'today', isStub: !!stub, isTokens: s.screen === 'tokens', stub: stub || { items: [], fields: [] },
+      goToday: go('today'), goApps: go('apps'), goTokens: go('tokens'), tokBg: s.screen === 'tokens' ? 'var(--bg-active)' : 'transparent',
+      appFiltered: s.app !== 'all', appCode: s.app, clearApp: () => this.setState({ app: 'all' }), noRepo: s.app === 'OA',
+      todoLabel: todoCount ? '처리할 일 ' + todoCount + '건' : '처리할 일 없음',
+      inputRows, failedRows, reviewRows, ideaRows, runningRows, recentRows,
+      hasInput: inputRows.length > 0, hasFailed: failedRows.length > 0, hasReview: reviewRows.length > 0, hasIdeas: ideaRows.length > 0, hasRunning: runningCount > 0,
+      inputCount: inputRows.length, failedCount: failedRows.length, reviewCount: reviewRows.length, ideaCount: ideaRows.length,
+      todoEmpty: todoCount === 0, showRecent: todoCount === 0 && recentRows.length > 0,
+      panelPos: s.vw < 1280 ? 'absolute' : 'relative', panelShadow: s.vw < 1280 ? '-12px 0 32px oklch(0 0 0 / 0.14)' : 'none',
+      panelOpen: !!p, p: p || { transitions: [], deps: [], items: [], runs: [], notes: [] }, closePanel: () => this.setState({ panel: null }),
+      tokStatus: TOK_S, tokNeutral: TOK_N, tokType: TOK_T,
+      confirmOpen: !!s.confirm, cf, closeConfirm: () => this.setState({ confirm: null }),
+      toastOpen: !!s.toast, toastMsg: s.toast ? s.toast.msg : '', toastUndo: !!(s.toast && s.toast.undo), onUndo: () => s.toast && s.toast.undo && s.toast.undo(),
+    };
+  }
+}
+</script>
+</body>
+</html>

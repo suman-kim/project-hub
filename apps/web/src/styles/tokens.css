@@ -1,0 +1,28 @@
+/* design/Hub Dashboard v4.dc.html의 디자인 토큰을 그대로 옮긴 것. 화면 구현(W1)에서 쓴다. */
+
+:root{color-scheme:light;--sans:'IBM Plex Sans KR',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;
+--bg:#F4F5F7;--surface:#FFFFFF;--sunken:#EBEDF1;--chip:#F1F2F5;--hover:#F7F8FA;--line:#E3E5EA;--line-soft:#EEF0F3;--line-strong:#D5D8DF;
+--text:#14171C;--text-2:#3A3F4A;--text-3:#5B6170;--accent:#2F55E4;--accent-ink:#1E3FB8;--accent-bg:#EEF1FE;--accent-sel:#F5F7FF;--ink:#14171C;--on-ink:#FFFFFF;
+--attn:#B5400C;--attn-bg:#FFF1E8;--attn-card:#FFF7F2;--attn-line:#F6C9AE;--attn-dot:#D9480F;--attn-deep:#8A3209;--attn-soft:#E8A882;--attn-solid:#B5400C;
+--prog:#1E3FB8;--prog-bg:#EEF1FE;--prog-dot:#2F55E4;--check:#5B21B6;--check-bg:#F3EEFD;--check-dot:#7C3AED;
+--done:#166534;--done-bg:#E9F7EE;--done-dot:#16A34A;--risk:#B42318;--risk-bg:#FEF0EE;--risk-line:#F5C2BB;--risk-solid:#B42318;
+--muted-bg:#EEF0F3;--muted-dot:#8A8F9C;--scrim:rgba(20,23,28,0.32);--shadow:rgba(20,23,28,0.10)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+--bg:#0F1115;--surface:#171A1F;--sunken:#1C2026;--chip:#232830;--hover:#1D2127;--line:#2A2F38;--line-soft:#22262D;--line-strong:#383E49;
+--text:#ECEEF2;--text-2:#C5C9D2;--text-3:#969CA9;--accent:#3D63F0;--accent-ink:#A9BBFF;--accent-bg:#1D2646;--accent-sel:#18203A;--ink:#ECEEF2;--on-ink:#14171C;
+--attn:#FFB38A;--attn-bg:#3A2418;--attn-card:#21170F;--attn-line:#5E3520;--attn-dot:#F2A36B;--attn-deep:#F2C3A6;--attn-soft:#7A4428;--attn-solid:#C2521A;
+--prog:#A9BBFF;--prog-bg:#1D2646;--prog-dot:#6F8CFF;--check:#C9B5FF;--check-bg:#2A2142;--check-dot:#A78BFA;
+--done:#86D9AE;--done-bg:#15301F;--done-dot:#34C76F;--risk:#FF9B8F;--risk-bg:#3A1D1A;--risk-line:#6B302A;--risk-solid:#C8352A;
+--muted-bg:#262A31;--muted-dot:#7D8391;--scrim:rgba(0,0,0,0.5);--shadow:rgba(0,0,0,0.4)}}
+:root[data-theme="dark"]{color-scheme:dark;
+--bg:#0F1115;--surface:#171A1F;--sunken:#1C2026;--chip:#232830;--hover:#1D2127;--line:#2A2F38;--line-soft:#22262D;--line-strong:#383E49;
+--text:#ECEEF2;--text-2:#C5C9D2;--text-3:#969CA9;--accent:#3D63F0;--accent-ink:#A9BBFF;--accent-bg:#1D2646;--accent-sel:#18203A;--ink:#ECEEF2;--on-ink:#14171C;
+--attn:#FFB38A;--attn-bg:#3A2418;--attn-card:#21170F;--attn-line:#5E3520;--attn-dot:#F2A36B;--attn-deep:#F2C3A6;--attn-soft:#7A4428;--attn-solid:#C2521A;
+--prog:#A9BBFF;--prog-bg:#1D2646;--prog-dot:#6F8CFF;--check:#C9B5FF;--check-bg:#2A2142;--check-dot:#A78BFA;
+--done:#86D9AE;--done-bg:#15301F;--done-dot:#34C76F;--risk:#FF9B8F;--risk-bg:#3A1D1A;--risk-line:#6B302A;--risk-solid:#C8352A;
+--muted-bg:#262A31;--muted-dot:#7D8391;--scrim:rgba(0,0,0,0.5);--shadow:rgba(0,0,0,0.4)}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-text-size-adjust:100%}
+*{box-sizing:border-box}
+a{color:var(--accent)}a:hover{color:var(--accent-ink)}
+textarea::placeholder,input::placeholder{color:var(--text-3)}
+@keyframes hubPulse{0%,100%{opacity:1}50%{opacity:.35}}

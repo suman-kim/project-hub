@@ -1,0 +1,15 @@
+{
+  "name": "claude-hub",
+  "private": true,
+  "packageManager": "pnpm@12.15.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "dev": "pnpm --filter @hub/shared build && pnpm --filter @hub/server dev",
+    "db:up": "docker compose up -d postgres",
+    "hub:install": "bash ops/install-launchd.sh",
+    "hub:uninstall": "bash ops/uninstall-launchd.sh",
+    "db:backup": "bash ops/backup.sh --force",
+    "hub:password": "bash ops/set-password.sh"
+  }
+}

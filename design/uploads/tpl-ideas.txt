@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8">
+<title>기획 인박스</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F4F5F7;color:#14171C;font-family:'IBM Plex Sans KR',system-ui,sans-serif}
+a{color:#2F55E4}a:hover{color:#1E3FB8}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; align-items: stretch; background: #F4F5F7; font-family: 'IBM Plex Sans KR', system-ui, sans-serif; color: #14171C">
+
+<nav aria-label="주 메뉴" style="flex: 1 1 220px; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #E3E5EA; padding: 24px 14px; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 10px">
+<div aria-hidden="true" style="width: 34px; height: 34px; border-radius: 9px; background: #14171C; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500">&gt;_</div>
+<div style="display: flex; flex-direction: column; gap: 1px">
+<span style="font-size: 16px; font-weight: 700; letter-spacing: -0.01em">Hub</span>
+<span style="font-size: 12px; color: #5B6170">Claude Code 작업실</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500; color: #3A3F4A"><svg aria-hidden="true" width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>개요</a>
+<a href="Board.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500; color: #3A3F4A"><svg aria-hidden="true" width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1.5"></rect><rect x="10" y="4" width="5" height="11" rx="1.5"></rect><rect x="17" y="4" width="4" height="7" rx="1.5"></rect></svg>태스크 보드</a>
+<a href="Ideas.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; color: #1E3FB8; background: #EEF1FE"><svg aria-hidden="true" width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13h4l2 3h4l2-3h4"></path><path d="M6 4h12l2 9v6H4v-6z"></path></svg>기획 인박스<span style="margin-left: auto; font-size: 12px; font-weight: 600; background: #FFF1E8; color: #B5400C; padding: 2px 8px; border-radius: 999px">{{pendingCount}}</span></a>
+<a href="Run.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500; color: #3A3F4A"><svg aria-hidden="true" width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l5-5-5-5"></path><path d="M12 19h8"></path></svg>실행 기록</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="padding: 0 12px 6px; font-size: 12px; font-weight: 600; color: #5B6170">앱</span>
+<div style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 12px">
+<span style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 6px; border: 1px solid #D5D8DF; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #3A3F4A">LK</span>
+<span style="font-size: 14px">Link</span>
+<span style="margin-left: auto; font-size: 12px; color: #B5400C">입력 필요</span>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 12px">
+<span style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 6px; border: 1px solid #D5D8DF; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #3A3F4A">HR</span>
+<span style="font-size: 14px">하루알바</span>
+<span style="margin-left: auto; font-size: 12px; color: #1E3FB8">로컬 작업 중</span>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 12px">
+<span style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 6px; border: 1px solid #D5D8DF; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #3A3F4A">CM</span>
+<span style="font-size: 14px">cyphers-meta</span>
+<span style="margin-left: auto; font-size: 12px; color: #1E3FB8">실행 중</span>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 12px">
+<span style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 6px; border: 1px solid #D5D8DF; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #3A3F4A">OA</span>
+<span style="font-size: 14px">오늘알바</span>
+<span style="margin-left: auto; font-size: 12px; color: #5B21B6">PR 검토</span>
+</div>
+</div>
+<div style="margin-top: auto; padding: 14px 12px; border: 1px solid #E3E5EA; border-radius: 10px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: #5B6170"><span>이번 달 사용량</span><span style="font-family: 'IBM Plex Mono', monospace; color: #14171C">$42 / $100</span></div>
+<div style="height: 6px; border-radius: 3px; background: #E9EBEF"><div style="width: 42%; height: 6px; border-radius: 3px; background: #2F55E4"></div></div>
+<span style="font-size: 12px; color: #5B6170">한도 80%에서 자동 생성 일시 중지</span>
+</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #5B6170">Claude가 앱별 주기마다 아이디어와 기획을 올려요 · 다음 생성: 내일 03:00 하루알바</span>
+<h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.01em">기획 인박스</h1>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid #D5D8DF; background: #FFFFFF; color: #14171C; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer">생성 주기 설정</button>
+<button type="button" style="min-height: 44px; padding: 0 18px; border-radius: 8px; border: 1px solid #2F55E4; background: #2F55E4; color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">아이디어 지금 생성</button>
+</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+
+<section aria-label="기획 목록" style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{ideas}}" as="it" hint-placeholder-count="6">
+<button type="button" sc-camel-on-click="{{it.pick}}" aria-pressed="{{it.pressed}}" style="text-align: left; width: 100%; box-sizing: border-box; padding: 14px 16px; border-radius: 10px; border: 1px solid {{it.border}}; background: {{it.bg}}; font-family: inherit; color: #14171C; cursor: pointer; display: flex; flex-direction: column; gap: 8px">
+<span style="display: flex; align-items: center; gap: 8px; width: 100%">
+<span style="width: 26px; height: 26px; flex-shrink: 0; border-radius: 6px; border: 1px solid #D5D8DF; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #3A3F4A">{{it.app}}</span>
+<span style="font-size: 12px; color: #5B6170">{{it.appName}} · {{it.ver}}</span>
+<span style="margin-left: auto; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: {{it.sBg}}; color: {{it.sFg}}">{{it.sLabel}}</span>
+</span>
+<span style="font-size: 15px; font-weight: 600; line-height: 1.4">{{it.title}}</span>
+<span style="font-size: 12px; color: #5B6170">{{it.created}}</span>
+</button>
+</sc-for>
+</section>
+
+<article aria-labelledby="idea-title" style="flex: 3 1 560px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E5EA; border-radius: 12px; padding: 28px 32px; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: #5B6170">
+<span style="width: 26px; height: 26px; border-radius: 6px; border: 1px solid #D5D8DF; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #3A3F4A">{{cur.app}}</span>
+<span>{{cur.appName}} · {{cur.ver}} · {{cur.created}}</span>
+<span style="margin-left: auto; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: {{cur.sBg}}; color: {{cur.sFg}}">{{cur.sLabel}}</span>
+</div>
+<h2 id="idea-title" style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.35">{{cur.title}}</h2>
+<sc-if value="{{cur.hasNote}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; gap: 10px; padding: 12px 14px; border-radius: 8px; background: #F4F5F7; font-size: 13px; color: #3A3F4A; line-height: 1.6">
+<svg aria-hidden="true" width="16" height="16" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 3px"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path></svg>
+<span><strong style="font-weight: 600">이전 버전에서 바뀐 점</strong> · {{cur.note}}</span>
+</div>
+</sc-if>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+<div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 6px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600; color: #5B6170">문제</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.7">{{cur.problem}}</p>
+</div>
+<div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 6px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600; color: #5B6170">제안</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.7">{{cur.proposal}}</p>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600; color: #5B6170">사용자 시나리오</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.7">{{cur.scenario}}</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600; color: #5B6170">기능 명세</h3>
+<ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 15px; line-height: 1.6">
+<sc-for list="{{cur.spec}}" as="s" hint-placeholder-count="4">
+<li>{{s}}</li>
+</sc-for>
+</ol>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px">
+<div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 8px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600; color: #5B6170">영향 범위</h3>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{cur.impact}}" as="f" hint-placeholder-count="4">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 4px 8px; border-radius: 6px; background: #F1F2F5; color: #3A3F4A">{{f}}</span>
+</sc-for>
+</div>
+</div>
+<div style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 8px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600; color: #5B6170">예상 비용</h3>
+<span style="font-size: 15px">{{cur.cost}}</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h3 style="margin: 0; font-size: 13px; font-weight: 600; color: #5B6170">{{cur.tasksLabel}}</h3>
+<div style="border: 1px solid #E3E5EA; border-radius: 10px">
+<sc-for list="{{cur.tasks}}" as="tk" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-top: {{tk.topBorder}}">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5B6170; min-width: 20px">{{tk.n}}</span>
+<span style="font-size: 14px; flex: 1 1 auto">{{tk.t}}</span>
+<span style="font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: #F1F2F5; color: #3A3F4A">{{tk.s}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="border-top: 1px solid #EEF0F3; padding-top: 20px; display: flex; flex-direction: column; gap: 12px">
+<sc-if value="{{showActions}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<button type="button" sc-camel-on-click="{{approve}}" style="min-height: 44px; padding: 0 18px; border-radius: 8px; border: 1px solid #2F55E4; background: #2F55E4; color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">승인하고 task 만들기</button>
+<button type="button" sc-camel-on-click="{{openRevise}}" style="min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid #D5D8DF; background: #FFFFFF; color: #14171C; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer">수정 요청</button>
+<button type="button" sc-camel-on-click="{{reject}}" style="min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid #D5D8DF; background: #FFFFFF; color: #B42318; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer">반려</button>
+<span style="font-size: 12px; color: #5B6170">승인하면 위 task가 대기 열에 들어가요</span>
+</div>
+</sc-if>
+<sc-if value="{{showRevise}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="rev-note" style="font-size: 13px; font-weight: 600">무엇을 바꿀까요?</label>
+<textarea id="rev-note" rows="3" value="{{note}}" sc-camel-on-change="{{onNote}}" placeholder="예: 3개월이 아니라 현재 패치 버전 기준으로 집계해줘" style="width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 8px; border: 1px solid {{noteBorder}}; font-family: inherit; font-size: 14px; line-height: 1.6; resize: vertical"></textarea>
+<sc-if value="{{revErr}}" hint-placeholder-val="{{false}}">
+<span style="font-size: 13px; color: #B42318">수정할 내용을 적어 주세요</span>
+</sc-if>
+<div style="display: flex; gap: 8px">
+<button type="button" sc-camel-on-click="{{sendRevise}}" style="min-height: 44px; padding: 0 18px; border-radius: 8px; border: 1px solid #2F55E4; background: #2F55E4; color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer">요청 보내기</button>
+<button type="button" sc-camel-on-click="{{cancelRevise}}" style="min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid #D5D8DF; background: #FFFFFF; color: #14171C; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer">취소</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{cur.isApproved}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 16px; border-radius: 8px; background: #E9F7EE; color: #166534; font-size: 14px">
+<svg aria-hidden="true" width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"></path></svg>
+<span style="font-weight: 600">승인됨</span><span>{{cur.doneNote}}</span>
+<a href="Board.dc.html" style="margin-left: auto; font-weight: 600; color: #166534">보드에서 보기</a>
+</div>
+</sc-if>
+<sc-if value="{{cur.isRevising}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 8px; background: #EEF1FE; color: #1E3FB8; font-size: 14px">
+<span style="font-weight: 600">수정 요청을 보냈어요 · 러너가 다음 버전을 만들고 있어요</span>
+<span style="color: #14171C">“{{cur.revNote}}”</span>
+</div>
+</sc-if>
+<sc-if value="{{cur.isRejected}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 8px; background: #EEF0F3; color: #3A3F4A; font-size: 14px">
+<span style="font-weight: 600">반려됨</span>
+<span>{{cur.doneNote}}</span>
+</div>
+</sc-if>
+</div>
+</article>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1320}}">
+class Component extends DCLogic {
+  renderVals() {
+    const st = this.state || {};
+    const sel = st.sel || 'cm-counter';
+    const over = st.over || {};
+    const revNotes = st.revNotes || {};
+    const revOpen = !!st.revOpen;
+    const note = st.note || '';
+    const revErr = !!st.revErr;
+
+    const data = [
+      {
+        id: 'cm-counter', app: 'CM', appName: 'cyphers-meta', ver: 'v2', created: '오늘 03:12 생성', base: 'pending',
+        title: '상대 조합별 캐릭터 상성 통계',
+        note: '전체 기간 통계를 최근 3개월 기준으로 바꿨어요. 요청: 밸런스 패치 전 데이터가 섞이면 의미가 없음.',
+        problem: '다음 판에 뭘 고를지 정할 때 참고할 상성 데이터가 없어서, 유저들이 커뮤니티 글에 의존하고 있어요.',
+        proposal: '최근 3개월 공식 경기 기록으로 캐릭터 간 승률을 집계해, 캐릭터 상세에 강한 상대와 약한 상대를 보여줘요.',
+        scenario: '캐릭터 상세 진입 → 상성 탭 → 상대 캐릭터별 승률과 표본 수 확인 → 표본 30판 미만은 흐리게 표시',
+        spec: ['캐릭터 쌍별 승률 집계 테이블 (최근 3개월, 패치 버전 포함)', '매일 새벽 증분 집계 배치 (새 경기만 반영)', 'GET /api/characters/:id/matchups', '상성 탭: 강한 상대 5 · 약한 상대 5', '표본 30판 미만은 신뢰도 낮음으로 표시'],
+        impact: ['app/characters/[id]/', 'lib/neople/matches.ts', 'db/schema.ts', 'jobs/matchups.ts (신규)'],
+        tasks: [{ t: '상성 집계 테이블 스키마', s: 'S' }, { t: '증분 집계 배치', s: 'M' }, { t: '상성 API', s: 'S' }, { t: '상성 탭 UI', s: 'M' }, { t: '표본 신뢰도 표시', s: 'S' }],
+        cost: '러너 약 2~3시간 · 예상 $6~9'
+      },
+      {
+        id: 'hr-review', app: 'HR', appName: '하루알바', ver: 'v1', created: '오늘 03:05 생성', base: 'pending',
+        title: '근무 완료 후 상호 평가',
+        problem: '단기 알바는 매번 처음 만나는 사이라, 고용주와 알바생 모두 상대를 믿을 근거가 없어요.',
+        proposal: '근무가 끝나면 24시간 안에 서로 별점과 태그로 평가하고, 둘 다 남기거나 기한이 지나면 동시에 공개해요.',
+        scenario: '근무 종료 1시간 뒤 푸시 → 별점과 태그 선택 → 상대도 남기면 서로의 프로필에 반영',
+        spec: ['평가 테이블: 근무 1건당 양방향 2개', '근무 종료 +1시간 평가 요청 푸시', '블라인드 공개: 둘 다 작성하거나 24시간 경과 시', '프로필 신뢰 지표: 평균 별점, 상위 태그 3개', '신고된 평가는 검토 전까지 숨김'],
+        impact: ['src/review/ (신규)', 'src/work-shift/work-shift.service.ts', 'src/notification/', 'app/profile/'],
+        tasks: [{ t: '평가 엔티티와 마이그레이션', s: 'S' }, { t: '평가 작성 API', s: 'M' }, { t: '블라인드 공개 스케줄러', s: 'S' }, { t: '평가 요청 푸시', s: 'S' }, { t: '프로필 신뢰 지표 UI', s: 'M' }, { t: '신고 연동', s: 'S' }],
+        cost: '러너 약 3~4시간 · 예상 $8~12'
+      },
+      {
+        id: 'lk-report', app: 'LK', appName: 'Link', ver: 'v1', created: '어제 03:00 생성', base: 'pending',
+        title: '피드 신고·차단 흐름 정리',
+        problem: '피드와 채팅의 신고 진입점이 달라 신고가 중간에 끊기고, 차단한 사람이 피드에는 계속 보여요.',
+        proposal: '신고와 차단을 하나의 바텀시트로 합치고, 차단은 피드·랜덤 매칭·채팅 전체에 한 번에 적용해요.',
+        scenario: '피드 글 더보기 → 신고·차단 시트 → 사유 선택 → 차단도 함께 할지 선택 → 이후 피드와 매칭에서 제외',
+        spec: ['공통 신고·차단 바텀시트 위젯', '차단 목록을 피드 조회·매칭 큐·채팅에 공통 적용', '신고 사유 코드 정리 (7종)', '설정의 차단 해제 화면'],
+        impact: ['lib/features/report/ (신규)', 'lib/features/feed/', 'src/matching/matching.service.ts', 'src/block/'],
+        tasks: [{ t: '공통 신고·차단 바텀시트', s: 'M' }, { t: '차단 필터 백엔드 적용', s: 'M' }, { t: '신고 사유 코드', s: 'S' }, { t: '차단 해제 화면', s: 'S' }],
+        cost: '러너 약 2시간 · 예상 $5~7'
+      },
+      {
+        id: 'cm-yearly', app: 'CM', appName: 'cyphers-meta', ver: 'v2', created: '10월 20일 생성', base: 'approved',
+        title: '연도별 히스토리 전적',
+        doneNote: 'task 3개 생성 · 1개 완료, 1개 실행 중',
+        problem: '시즌 단위 기록만 있어서 장기적인 플레이스타일 변화를 볼 수 없어요.',
+        proposal: '연도별 집계 카드와 전년 대비 비교 카드를 추가해요.',
+        scenario: '닉네임 검색 → 히스토리 탭 → 연도 카드 → 전년 대비 변화 확인',
+        spec: ['연도별 집계 테이블', '증분 집계 배치', '히스토리 API와 탭 UI'],
+        impact: ['app/users/[id]/', 'jobs/yearly-stats.ts'],
+        tasks: [{ t: '#CM-32 집계 테이블 스키마', s: '완료' }, { t: '#CM-33 연도별 집계 배치 작업', s: '진행 중' }, { t: '#CM-34 전년 대비 폼 비교 카드 UI', s: '대기' }],
+        cost: '러너 약 2시간 · 예상 $5~8'
+      },
+      {
+        id: 'lk-mic', app: 'LK', appName: 'Link', ver: 'v1', created: '10월 19일 생성', base: 'approved',
+        title: '음성방 입장 전 마이크 테스트',
+        doneNote: 'task 2개 생성 · 1개 답변 대기',
+        problem: '처음 음성방에 들어온 유저가 마이크 권한이나 음량 문제로 말을 못 하고 바로 나가요.',
+        proposal: '입장 전에 입력 레벨과 마이크를 확인하는 프리뷰 화면을 둬요.',
+        scenario: '음성방 선택 → 마이크 프리뷰 → 레벨 확인 → 입장',
+        spec: ['입장 전 프리뷰 화면: 입력 레벨 미터, 마이크 선택', '권한 거부 처리', '퇴장 시 리소스 정리'],
+        impact: ['lib/features/voice_room/', 'lib/core/media/'],
+        tasks: [{ t: '#LK-57 음성방 마이크 프리뷰 화면', s: '입력 필요' }, { t: '#LK-58 음성방 퇴장 시 미디어 리소스 정리', s: '대기' }],
+        cost: '러너 약 1~2시간 · 예상 $3~5'
+      },
+      {
+        id: 'oa-dark', app: 'OA', appName: '오늘알바', ver: 'v1', created: '10월 18일 생성', base: 'rejected',
+        title: '다크 모드 지원',
+        doneNote: '사유: 사용자 대부분이 낮 시간대에 쓰고, SMS 인증이 더 급함. 다음 생성 때 같은 제안은 제외해요.',
+        problem: '야간에 앱을 열면 화면이 너무 밝다는 의견이 있어요.',
+        proposal: '시스템 설정을 따르는 다크 테마를 추가해요.',
+        scenario: '휴대폰이 다크 모드면 앱도 자동으로 어둡게 표시',
+        spec: ['색상 토큰을 라이트·다크 두 벌로 분리', '하드코딩 색상 정리', '지도 스타일 다크 버전'],
+        impact: ['src/theme/', 'app/(tabs)/'],
+        tasks: [{ t: '색상 토큰 분리', s: 'M' }, { t: '하드코딩 색상 정리', s: 'M' }, { t: '지도 다크 스타일', s: 'S' }],
+        cost: '러너 약 2시간 · 예상 $5~7'
+      }
+    ];
+
+    const statusStyle = {
+      pending: { sLabel: '승인 대기', sBg: '#FFF1E8', sFg: '#B5400C' },
+      revising: { sLabel: '수정 중', sBg: '#EEF1FE', sFg: '#1E3FB8' },
+      approved: { sLabel: '승인됨', sBg: '#E9F7EE', sFg: '#166534' },
+      rejected: { sLabel: '반려됨', sBg: '#EEF0F3', sFg: '#3A3F4A' }
+    };
+
+    const withStatus = data.map((d) => {
+      const status = over[d.id] || d.base;
+      let doneNote = d.doneNote || '';
+      if (status === 'approved' && d.base !== 'approved') doneNote = 'task ' + d.tasks.length + '개가 대기 열에 추가됐어요';
+      if (status === 'rejected' && d.base !== 'rejected') doneNote = '직접 반려 · 다음 생성 때 같은 제안은 제외해요';
+      return Object.assign({}, d, statusStyle[status], {
+        status: status,
+        doneNote: doneNote,
+        revNote: revNotes[d.id] || '',
+        hasNote: !!d.note,
+        isPending: status === 'pending',
+        isApproved: status === 'approved',
+        isRevising: status === 'revising',
+        isRejected: status === 'rejected'
+      });
+    });
+
+    const ideas = withStatus.map((d) => {
+      const on = d.id === sel;
+      return {
+        app: d.app, appName: d.appName, ver: d.ver, title: d.title, created: d.created,
+        sLabel: d.sLabel, sBg: d.sBg, sFg: d.sFg,
+        pressed: on ? 'true' : 'false',
+        border: on ? '#2F55E4' : '#E3E5EA',
+        bg: on ? '#F5F7FF' : '#FFFFFF',
+        pick: () => this.setState({ sel: d.id, revOpen: false, note: '', revErr: false })
+      };
+    });
+
+    const found = withStatus.filter((d) => d.id === sel)[0] || withStatus[0];
+    const cur = Object.assign({}, found, {
+      tasksLabel: found.base === 'pending' ? '예상 task (' + found.tasks.length + '개)' : '생성된 task',
+      tasks: found.tasks.map((t, i) => ({ n: String(i + 1), t: t.t, s: t.s, topBorder: i === 0 ? '0' : '1px solid #EEF0F3' }))
+    });
+
+    const setOver = (status) => {
+      const next = Object.assign({}, (this.state && this.state.over) || {});
+      next[found.id] = status;
+      return next;
+    };
+
+    return {
+      ideas: ideas,
+      cur: cur,
+      pendingCount: withStatus.filter((d) => d.status === 'pending').length,
+      showActions: cur.isPending && !revOpen,
+      showRevise: cur.isPending && revOpen,
+      note: note,
+      revErr: revErr,
+      noteBorder: revErr ? '#B42318' : '#D5D8DF',
+      onNote: (e) => this.setState({ note: e.target.value, revErr: false }),
+      approve: () => this.setState({ over: setOver('approved') }),
+      reject: () => this.setState({ over: setOver('rejected') }),
+      openRevise: () => this.setState({ revOpen: true, revErr: false }),
+      cancelRevise: () => this.setState({ revOpen: false, note: '', revErr: false }),
+      sendRevise: () => {
+        const text = ((this.state && this.state.note) || '').trim();
+        if (!text) {
+          this.setState({ revErr: true });
+          return;
+        }
+        const notes = Object.assign({}, (this.state && this.state.revNotes) || {});
+        notes[found.id] = text;
+        this.setState({ over: setOver('revising'), revNotes: notes, revOpen: false, note: '', revErr: false });
+      }
+    };
+  }
+}
+</script>
+
+
+</body></html>
