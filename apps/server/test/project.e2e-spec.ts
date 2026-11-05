@@ -461,6 +461,45 @@ describe('통합 관리 (X1) e2e', () => {
     });
   });
 
+  describe('앱별 노트', () => {
+    it('만들고 고치고 지운다. 목록은 고정 먼저, 그다음 최근 수정순', async () => {
+      const appId = ids.SR;
+      expect((await http.get(`/api/apps/${appId}/notes`).set(auth).expect(200)).body).toEqual([]);
+
+      const a = (await http.post(`/api/apps/${appId}/notes`).set(auth).send({ title: '자주 쓰는 명령어', folder: '  명령어 ', body: '```\npnpm dev\n```' }).expect(201)).body;
+      expect(a).toMatchObject({ appId, title: '자주 쓰는 명령어', folder: '명령어', body: '```\npnpm dev\n```', pinned: false });
+      // 비어 있는 값으로도 만들 수 있다 (화면에서 "새 노트"를 누르면 빈 노트가 생긴다)
+      const b = (await http.post(`/api/apps/${appId}/notes`).set(auth).send({}).expect(201)).body;
+      expect(b).toMatchObject({ title: '', folder: '', body: '', pinned: false });
+
+      // 최근 수정순: b가 나중에 생겼으니 먼저
+      let list = (await http.get(`/api/apps/${appId}/notes`).set(auth).expect(200)).body;
+      expect(list.map((n: { id: number }) => n.id)).toEqual([b.id, a.id]);
+
+      // a를 고정하면 맨 위로
+      const pinned = (await http.patch(`/api/notes/${a.id}`).set(auth).send({ pinned: true }).expect(200)).body;
+      expect(pinned.pinned).toBe(true);
+      list = (await http.get(`/api/apps/${appId}/notes`).set(auth).expect(200)).body;
+      expect(list.map((n: { id: number }) => n.id)).toEqual([a.id, b.id]);
+
+      // 본문만 고치면 나머지는 그대로
+      const edited = (await http.patch(`/api/notes/${b.id}`).set(auth).send({ body: '- [ ] 스토어 심사 제출' }).expect(200)).body;
+      expect(edited).toMatchObject({ title: '', folder: '', body: '- [ ] 스토어 심사 제출', pinned: false });
+
+      // 길이 제한과 없는 노트
+      await http.patch(`/api/notes/${b.id}`).set(auth).send({ folder: 'x'.repeat(101) }).expect(400);
+      await http.patch('/api/notes/999999').set(auth).send({ title: 'x' }).expect(404);
+      await http.get('/api/apps/999999/notes').set(auth).expect(404);
+
+      await http.delete(`/api/notes/${b.id}`).set(auth).expect(204);
+      await http.delete(`/api/notes/${b.id}`).set(auth).expect(404);
+      list = (await http.get(`/api/apps/${appId}/notes`).set(auth).expect(200)).body;
+      expect(list.map((n: { id: number }) => n.id)).toEqual([a.id]);
+      // 다른 앱 목록에는 안 보인다
+      expect((await http.get(`/api/apps/${ids.MR}/notes`).set(auth).expect(200)).body).toEqual([]);
+    });
+  });
+
   describe('규칙 화면의 CLAUDE.md', () => {
     it('전역·앱 폴더·다른 곳의 저장소 CLAUDE.md를 보여 주고, 열었을 때와 바뀌었으면 덮어쓰지 않는다', async () => {
       await http.post(`/api/apps/${ids.MR}/repos/detect`).set(auth).expect(201);

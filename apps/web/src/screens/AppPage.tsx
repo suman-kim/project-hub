@@ -12,13 +12,14 @@ import { DEPLOY_ST, ENV, LIFE, LIFE_HINT, tone, TONE } from '../lib/labels';
 import { readPref, writePref } from '../lib/prefs';
 import { tildify } from '../lib/paths';
 import { DocsTab } from './AppDocs';
+import { NotesTab } from './AppNotes';
 import { SessionsTab } from './AppSessions';
 import { AppSettings } from './AppSettings';
 import { IdeasTab } from './AppTabs';
 import { Board } from './Board';
 import { HistoryTab, StageTab } from './AppStageHistory';
 
-export type AppTab = 'overview' | 'board' | 'sessions' | 'stage' | 'history' | 'ideas' | 'docs' | 'design' | 'settings';
+export type AppTab = 'overview' | 'board' | 'sessions' | 'stage' | 'history' | 'ideas' | 'notes' | 'docs' | 'design' | 'settings';
 
 const TABS: Array<[AppTab, string]> = [
   ['overview', '개요'],
@@ -27,6 +28,7 @@ const TABS: Array<[AppTab, string]> = [
   ['stage', '단계·배포'],
   ['history', '히스토리'],
   ['ideas', '기획'],
+  ['notes', '노트'],
   ['docs', '문서'],
   ['design', '디자인'],
   ['settings', '설정'],
@@ -102,6 +104,7 @@ export function AppPage() {
       {tab === 'stage' && <StageTab app={a} ov={ov} />}
       {tab === 'history' && <HistoryTab app={a} />}
       {tab === 'ideas' && <IdeasTab app={a} />}
+      {tab === 'notes' && <NotesTab app={a} />}
       {tab === 'docs' && <DocsTab key="docs" app={a} dir="docs" />}
       {tab === 'design' && <DocsTab key="design" app={a} dir="design" />}
     </div>
