@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import request from 'supertest';
@@ -577,6 +577,43 @@ describe('Hub e2e', () => {
       await http.get(`${base}design/..%2F..%2Foutside.md`).expect((r) => expect([403, 404]).toContain(r.status));
       await http.get(`${base}outside.md`).expect(404);
       await http.get(`${base.replace(/[0-9a-f]{4}\/$/, '0000/')}design/App.dc.html`).expect(403);
+    });
+
+    it('문서 탭: docs/에 파일을 올리고(같은 이름은 번호), 다른 파일도 목록에 보이며, 지울 수 있다. docs/hub/와 밖은 막는다', async () => {
+      const up = (dir: string, name: string, body = 'x', root = 0) => http.post('/api/apps/1/files').query({ root, dir, name }).set(auth).set('Content-Type', 'application/octet-stream').send(Buffer.from(body));
+      const pdf = (await up('docs', '회의록.pdf', '%PDF-1.4').expect(201)).body;
+      expect(pdf).toMatchObject({ root: 0, path: 'docs/회의록.pdf', kind: 'pdf', size: 8 });
+      expect(readFileSync(join(repo, 'docs', '회의록.pdf'), 'utf8')).toBe('%PDF-1.4');
+      // 같은 이름은 덮어쓰지 않고 번호를 붙인다
+      expect((await up('docs', '회의록.pdf', 'second').expect(201)).body.path).toBe('docs/회의록 (2).pdf');
+      expect(readFileSync(join(repo, 'docs', '회의록.pdf'), 'utf8')).toBe('%PDF-1.4');
+      // 없는 하위 폴더는 만들고, 볼 수 없는 파일은 other로 목록에 보인다(design/에는 넣지 않는다)
+      expect((await up('docs/설계', 'erd.xlsx').expect(201)).body).toMatchObject({ path: 'docs/설계/erd.xlsx', kind: 'other' });
+      const paths = (await http.get('/api/apps/1/files').set(auth).expect(200)).body.files.map((f: { path: string; kind: string }) => `${f.path}:${f.kind}`);
+      expect(paths).toEqual(expect.arrayContaining(['docs/회의록.pdf:pdf', 'docs/회의록 (2).pdf:pdf', 'docs/설계/erd.xlsx:other']));
+      expect(paths).not.toContain('design/support.js:other');
+
+      // 거절: docs/hub/, docs/ 밖, 상위 경로, 점으로 시작하는 이름, 없는 저장소, 링크로 밖에 쓰기
+      await up('docs/hub', 'x.md').expect(403);
+      await up('design', 'x.md').expect(400);
+      await up('docs/../src', 'x.md').expect(400);
+      await up('docs', '.env').expect(400);
+      await up('docs', 'x.md', 'x', 9).expect(404);
+      const outside = mkdtempSync(join(tmpdir(), 'hub-outside-'));
+      symlinkSync(outside, join(repo, 'docs', 'link'));
+      await up('docs/link', 'x.md').expect(403);
+      await up('docs/link/new', 'x.md').expect(403);
+      expect(readdirSync(outside)).toEqual([]);
+
+      // 지우기: 파일만, docs/hub/·폴더·링크는 막는다
+      const del = (path: string) => http.delete('/api/apps/1/files').query({ root: 0, path }).set(auth);
+      await del('docs/회의록 (2).pdf').expect(204);
+      expect(existsSync(join(repo, 'docs', '회의록 (2).pdf'))).toBe(false);
+      await del('docs/회의록 (2).pdf').expect(404);
+      await del(`docs/hub/${readdirSync(join(repo, 'docs', 'hub'))[0]}`).expect(403);
+      await del('docs/설계').expect(403);
+      await del('docs/link').expect(403);
+      await del('README.md').expect(400);
     });
 
     it('MCP update_task_status에 PR 주소를 남기면 task에 붙는다', async () => {

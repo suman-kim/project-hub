@@ -1,7 +1,10 @@
-import { Controller, Get, Param, ParseIntPipe, Res } from '@nestjs/common';
-import type { Response } from 'express';
+import { Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Post, Query, Req, Res } from '@nestjs/common';
+import type { Request, Response } from 'express';
+import { z } from 'zod';
 import { extname } from 'node:path';
 import { Public } from '../../common/public.decorator';
+import { MAX_FILE_BYTES, readUpload } from '../../common/stored-files';
+import { ZodPipe } from '../../common/zod.pipe';
 import { ProjectFilesService } from './project-files.service';
 
 const TYPES: Record<string, string> = {
@@ -14,6 +17,9 @@ const TYPES: Record<string, string> = {
   '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf',
 };
 
+const pathSchema = z.string().trim().min(1, '경로가 필요하다').max(1000);
+const nameSchema = z.string().trim().min(1, '파일 이름(name)이 필요하다').max(1000);
+
 @Controller('api/apps/:id/files')
 export class ProjectFilesController {
   constructor(private readonly files: ProjectFilesService) {}
@@ -22,6 +28,31 @@ export class ProjectFilesController {
   @Get()
   list(@Param('id', ParseIntPipe) id: number) {
     return this.files.list(id);
+  }
+
+  /**
+   * 문서 탭: docs/ 아래 폴더에 파일 올리기. 본문은 파일 바이트 그대로, 어디에·무슨 이름으로는 쿼리로 받는다.
+   * 같은 이름이 있으면 번호를 붙이고, 만든 파일을 돌려준다.
+   * @param id 앱 id
+   * @param root 루트(앱 폴더·저장소) 번호
+   * @param dir 올릴 폴더 (docs 또는 docs/하위)
+   * @param name 파일 이름
+   */
+  @Post()
+  async upload(@Param('id', ParseIntPipe) id: number, @Query('root', ParseIntPipe) root: number, @Query('dir', new ZodPipe(pathSchema)) dir: string, @Query('name', new ZodPipe(nameSchema)) name: string, @Req() req: Request) {
+    return this.files.upload(id, root, dir, name, await readUpload(req, MAX_FILE_BYTES));
+  }
+
+  /**
+   * 문서 탭: docs/ 아래 파일 하나 지우기 (docs/hub/·폴더·링크는 막는다)
+   * @param id 앱 id
+   * @param root 루트 번호
+   * @param path 루트 기준 파일 경로 (docs/…)
+   */
+  @Delete()
+  @HttpCode(204)
+  async remove(@Param('id', ParseIntPipe) id: number, @Query('root', ParseIntPipe) root: number, @Query('path', new ZodPipe(pathSchema)) path: string) {
+    await this.files.remove(id, root, path);
   }
 }
 

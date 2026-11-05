@@ -463,7 +463,8 @@ export interface RunListItemDto extends RunDto {
 }
 
 /** 문서 탭에 보이는 파일 종류. 그 밖의 파일(js, css 등)은 목록에 없고 보기 주소로만 열린다 */
-export type ProjectFileKind = 'md' | 'text' | 'html' | 'image' | 'pdf';
+/** 문서 탭 파일 보기 방식. other는 docs/에 있는 그 밖의 파일(xlsx, zip 등)로 내려받기만 한다 */
+export type ProjectFileKind = 'md' | 'text' | 'html' | 'image' | 'pdf' | 'other';
 
 /** 프로젝트 docs/·design/ 아래 파일 한 개 */
 export interface ProjectFileDto {

@@ -1,8 +1,9 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { existsSync, lstatSync, readdirSync, realpathSync } from 'node:fs';
-import { extname, join, sep } from 'node:path';
+import { existsSync, lstatSync, mkdirSync, readdirSync, realpathSync, unlinkSync, writeFileSync } from 'node:fs';
+import { dirname, extname, join, sep } from 'node:path';
 import type { ProjectFileDto, ProjectFileKind, ProjectFilesDto } from '@hub/shared';
+import { cleanFileName } from '../../common/stored-files';
 import { HUB_CONFIG, HubConfig } from '../../config/hub-config';
 import { App } from '../apps/app.entity';
 import { AppsService } from '../apps/apps.service';
@@ -10,6 +11,10 @@ import { ReposService } from '../repos/repos.service';
 
 /** 프로젝트 문서는 docs/, 디자인은 design/에 둔다 */
 export const PROJECT_DIRS = ['docs', 'design'] as const;
+/** 문서 탭에서 파일을 올리고 지울 수 있는 폴더 */
+export const WRITABLE_DIR = 'docs';
+/** docs/ 안에서 Hub가 save_spec 사본을 다시 쓰는 폴더. 올리기·지우기를 막는다 */
+export const HUB_SPEC_DIR = 'hub';
 
 /**
  * 보기 주소는 6시간 단위로 같은 값을 주고 6~12시간 동안 쓸 수 있다.
@@ -37,7 +42,22 @@ interface Root {
 }
 
 /**
- * 앱 폴더와 등록된 저장소의 docs/·design/을 읽는다. 읽기만 한다.
+ * docs/ 아래 경로를 조각으로 나눈다. docs/ 밖, 숨김·상위 경로(.으로 시작), docs/hub/는 거부한다.
+ * @param rel 루트 기준 경로 (예: docs/설계, docs/설계/a.pdf)
+ */
+export function docsSegments(rel: string): string[] {
+  const segs = rel.normalize('NFC').split('/').filter(Boolean);
+  if (segs[0] !== WRITABLE_DIR) throw new BadRequestException('docs/ 아래에만 올리고 지울 수 있다');
+  if (segs.some((s) => s.startsWith('.'))) throw new BadRequestException('숨김 폴더와 상위 경로는 쓸 수 없다');
+  if (segs[1] === HUB_SPEC_DIR) throw new ForbiddenException('docs/hub/는 Hub가 인수인계·기획 사본을 다시 쓰는 곳이라 올리거나 지울 수 없다');
+  return segs;
+}
+
+/** a가 b와 같거나 b 안에 있는지 (둘 다 실제 경로) */
+const within = (a: string, b: string) => a === b || a.startsWith(b + sep);
+
+/**
+ * 앱 폴더와 등록된 저장소의 docs/·design/을 읽는다. 문서 탭에서 docs/에 파일을 올리고 지울 수도 있다(docs/hub/는 막는다).
  * HTML 디자인은 스크립트가 돌아서 대시보드와 떼어 보여 줘야 한다. 그래서 쿠키 대신 서명된 임시 주소(/view/<token>/…)로 내보낸다.
  */
 @Injectable()
@@ -72,7 +92,8 @@ export class ProjectFilesService {
     const dto = roots.map((root, index) => {
       let truncated = false;
       for (const dir of PROJECT_DIRS) {
-        const found = walk(join(root.path, dir), dir, 0, MAX_FILES);
+        // docs/에는 볼 수 없는 파일(xlsx, zip 등)도 내려받기용으로 보인다. design/은 시안의 js·css·글꼴이 섞여 있어 볼 수 있는 것만
+        const found = walk(join(root.path, dir), dir, 0, MAX_FILES, dir === WRITABLE_DIR);
         truncated ||= found.truncated;
         files.push(...found.files.map((f) => ({ ...f, root: index })));
       }
@@ -99,6 +120,72 @@ export class ProjectFilesService {
     return real;
   }
 
+  /**
+   * docs/ 아래 폴더에 파일을 올린다. 같은 이름이 있으면 덮어쓰지 않고 "이름 (2).pdf"처럼 번호를 붙인다. 없는 폴더는 만든다.
+   * 저장소 안에 새 파일로 생기니 git 변경으로 잡힌다(커밋은 사용자가 한다).
+   * @param appId 앱 id
+   * @param rootIndex 루트(앱 폴더·저장소) 번호. 목록의 roots[].index
+   * @param dir 올릴 폴더 (docs 또는 docs/하위)
+   * @param rawName 브라우저가 보낸 파일 이름
+   * @param body 파일 내용
+   */
+  async upload(appId: number, rootIndex: number, dir: string, rawName: string, body: Buffer): Promise<ProjectFileDto> {
+    const root = await this.rootOf(appId, rootIndex);
+    const segs = docsSegments(dir);
+    const name = cleanFileName(rawName);
+    if (!name || name.startsWith('.')) throw new BadRequestException('파일 이름이 비었거나 점(.)으로 시작한다');
+    const target = join(root.path, ...segs);
+    // 만들기 전에, 이미 있는 가장 가까운 상위 폴더가 docs/ 안(또는 docs/가 아직 없으면 루트)인지 본다. 링크로 밖에 쓰지 않게
+    let probe = target;
+    while (!existsSync(probe)) probe = dirname(probe);
+    const docsReal = () => realpathSync(join(root.path, WRITABLE_DIR));
+    const probeReal = realpathSync(probe);
+    if (!(probeReal === root.path || (existsSync(join(root.path, WRITABLE_DIR)) && within(probeReal, docsReal()))))
+      throw new ForbiddenException('docs/ 밖에는 올릴 수 없다');
+    mkdirSync(target, { recursive: true });
+    // 만든 뒤에도 다시 본다: docs/ 자체가 저장소 밖을 가리키는 링크면 거절
+    const realDocs = docsReal();
+    const realTarget = realpathSync(target);
+    if (!realDocs.startsWith(root.path + sep)) throw new ForbiddenException('docs/가 저장소 밖을 가리킨다');
+    if (!within(realTarget, realDocs) || !lstatSync(realTarget).isDirectory()) throw new ForbiddenException('docs/ 밖에는 올릴 수 없다');
+    const ext = extname(name);
+    const stem = name.slice(0, name.length - ext.length);
+    let final = name;
+    for (let n = 2; existsSync(join(realTarget, final)); n++) {
+      if (n > 999) throw new ConflictException('같은 이름의 파일이 너무 많다');
+      final = `${stem} (${n})${ext}`;
+    }
+    writeFileSync(join(realTarget, final), body, { flag: 'wx' });
+    return { root: rootIndex, path: [...segs, final].join('/'), kind: kindOf(final) ?? 'other', size: body.length, modifiedAt: new Date().toISOString() };
+  }
+
+  /**
+   * docs/ 아래 파일 하나를 지운다. 폴더·링크·docs/hub/는 지우지 않는다. git에 없는 파일은 되돌릴 수 없다(화면이 먼저 확인을 받는다).
+   * @param appId 앱 id
+   * @param rootIndex 루트 번호
+   * @param path 루트 기준 파일 경로 (docs/…)
+   */
+  async remove(appId: number, rootIndex: number, path: string): Promise<void> {
+    const root = await this.rootOf(appId, rootIndex);
+    const segs = docsSegments(path);
+    if (segs.length < 2) throw new BadRequestException('지울 파일 경로가 필요하다');
+    const full = join(root.path, ...segs);
+    if (!existsSync(full)) throw new NotFoundException('파일이 없다');
+    if (!lstatSync(full).isFile()) throw new ForbiddenException('파일만 지울 수 있다 (폴더·링크는 지우지 않는다)');
+    if (!within(realpathSync(dirname(full)), realpathSync(join(root.path, WRITABLE_DIR)))) throw new ForbiddenException('docs/ 밖 파일은 지울 수 없다');
+    unlinkSync(full);
+  }
+
+  /**
+   * @param appId 앱 id
+   * @param rootIndex 루트 번호
+   */
+  private async rootOf(appId: number, rootIndex: number): Promise<Root> {
+    const root = (await this.roots(await this.apps.get(appId)))[rootIndex];
+    if (!root) throw new NotFoundException(`저장소 ${rootIndex}번이 없다`);
+    return root;
+  }
+
   private sign(appId: number, root: number, exp: number): string {
     const body = `${appId}-${root}-${exp}`;
     return `${body}-${this.mac(body)}`;
@@ -120,7 +207,14 @@ export class ProjectFilesService {
 }
 
 /** 숨김·node_modules·심볼릭 링크는 건너뛰고, 보여 줄 종류의 파일만 모은다 */
-function walk(abs: string, rel: string, depth: number, max: number): { files: Omit<ProjectFileDto, 'root'>[]; truncated: boolean } {
+/**
+ * @param abs 읽을 폴더
+ * @param rel 목록에 쓸 경로 앞부분 (docs, design)
+ * @param depth 지금 깊이
+ * @param max 최대 파일 수
+ * @param withOther 볼 수 없는 파일도 other로 넣을지 (docs/만)
+ */
+function walk(abs: string, rel: string, depth: number, max: number, withOther = false): { files: Omit<ProjectFileDto, 'root'>[]; truncated: boolean } {
   const files: Omit<ProjectFileDto, 'root'>[] = [];
   let truncated = false;
   const visit = (a: string, r: string, d: number) => {
@@ -138,7 +232,7 @@ function walk(abs: string, rel: string, depth: number, max: number): { files: Om
         if (d < MAX_DEPTH && !SKIP_DIRS.has(e.name)) visit(childAbs, childRel, d + 1);
         continue;
       }
-      const kind = e.isFile() ? kindOf(e.name) : null;
+      const kind = e.isFile() ? (kindOf(e.name) ?? (withOther ? 'other' : null)) : null;
       if (!kind) continue;
       if (files.length >= max) {
         truncated = true;

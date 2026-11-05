@@ -14,6 +14,22 @@ import { useUi } from './ui';
 const MB = 1024 * 1024;
 
 /**
+ * 이 부품이 떠 있는 동안, 끌어 놓기 칸 밖에 떨어뜨린 파일을 브라우저가 열어 Hub 화면을 떠나지 않게 한다.
+ * (칸 안의 onDrop은 그대로 받는다)
+ */
+export function usePreventFileDrop(): void {
+  useEffect(() => {
+    const stop = (e: DragEvent) => e.preventDefault();
+    window.addEventListener('dragover', stop);
+    window.addEventListener('drop', stop);
+    return () => {
+      window.removeEventListener('dragover', stop);
+      window.removeEventListener('drop', stop);
+    };
+  }, []);
+}
+
+/**
  * 올릴 수 있는 파일만 고른다. 너무 큰 파일과 빈 파일(폴더)은 빼고 알린다.
  * @param picked 고르거나 끌어 놓은 파일
  * @param toast 알림 (useUi().toast)
@@ -54,16 +70,7 @@ export function AttachmentList<F extends AttachmentFile>({ files, onUpload, onDe
   const [busy, setBusy] = useState<{ done: number; total: number } | null>(null);
   const [viewing, setViewing] = useState<number | null>(null);
 
-  // 서랍이 열린 동안 끌어 놓기 칸 밖에 떨어뜨린 파일을 브라우저가 열어 Hub 화면을 떠나지 않게 한다.
-  useEffect(() => {
-    const stop = (e: DragEvent) => e.preventDefault();
-    window.addEventListener('dragover', stop);
-    window.addEventListener('drop', stop);
-    return () => {
-      window.removeEventListener('dragover', stop);
-      window.removeEventListener('drop', stop);
-    };
-  }, []);
+  usePreventFileDrop();
 
   const upload = async (picked: File[]) => {
     if (!picked.length || busy) return;
