@@ -11,37 +11,45 @@ import { Dialog, ErrorBox, Skeleton, useUi } from '../components/ui';
 import { fileSize, stamp } from '../lib/format';
 import { ALERT_DAYS, daysLeft, dLeft, DOC_KIND, FILE_KIND, isoDay, MAX_FILE_MB, mdOf, useMine, useMineApi } from '../lib/mine';
 import { usePrefs } from '../lib/prefs';
+import { useNotes } from '../lib/notes';
 import { TextFile } from './AppDocs';
+import { NotesTab } from './AppNotes';
 
 const PRIO: Record<1 | 2 | 3, string> = { 1: '우선순위 높음', 2: '우선순위 보통', 3: '우선순위 낮음' };
 const SECRET0: Record<MyDocKind, MySecretMode> = { store: 'ref', apikey: 'ref', billing: 'none', domain: 'none', legal: 'none', memo: 'none' };
 const KIND_ORDER = [...MY_DOC_KINDS].sort();
 
-type Tab = 'todo' | 'docs';
+type Tab = 'todo' | 'notes' | 'vault';
 
-/** 내 업무: 앱에 묶이지 않는 내 할 일과 계정·키·결제·도메인 문서. ?tab=docs&doc=ID로 문서 서랍을 연다 */
+/** 주소의 ?tab= 값 → 탭. 예전 주소(?tab=docs)도 보관함으로 연다 */
+function tabOf(v: string | null): Tab {
+  return v === 'notes' ? 'notes' : v === 'vault' || v === 'docs' ? 'vault' : 'todo';
+}
+
+/** 내 업무: 앱에 묶이지 않는 내 할 일, 노트, 보관함(계정·키·결제·도메인 문서). ?tab=vault&doc=ID로 문서 서랍을 연다 */
 export function Mine() {
   const [params, setParams] = useSearchParams();
-  const tab: Tab = params.get('tab') === 'docs' ? 'docs' : 'todo';
-  const docId = Number(params.get('doc')) || null;
+  const tab = tabOf(params.get('tab'));
   const mine = useMine();
-  const setTab = (t: Tab) => setParams(t === 'docs' ? { tab: 'docs' } : {}, { replace: true });
-  const openDoc = (id: number | null) => setParams(id ? { tab: 'docs', doc: String(id) } : { tab: 'docs' }, { replace: !!docId === !!id });
+  const notes = useNotes(null);
+  const setTab = (t: Tab) => setParams(t === 'todo' ? {} : { tab: t }, { replace: true });
+  const openDoc = (id: number) => setParams({ tab: 'vault', doc: String(id) });
   const todos = mine.data?.todos ?? [];
-  const docs = mine.data?.docs ?? [];
-  const open = docs.find((d) => d.id === docId) ?? null;
+  // 할 일에 연결하는 문서는 공통 보관함 것만 (앱 전용 문서는 앱 페이지 보관함에 있다)
+  const common = (mine.data?.docs ?? []).filter((d) => d.appId === null);
 
   return (
     <div data-screen-label="내 업무" className="page">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <span className="page-sub">앱에 묶이지 않는 내 할 일과 계정·키·결제·도메인 문서 · 모든 앱에 공통이에요</span>
+        <span className="page-sub">앱에 묶이지 않는 내 할 일, 노트, 계정·키·결제·도메인 보관함 · 모든 앱에 공통이에요</span>
         <h1 className="page-title">내 업무</h1>
       </div>
       <div role="tablist" aria-label="내 업무" style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--line)' }}>
         {(
           [
             ['todo', '할 일', todos.filter((t) => !t.parentId && !t.done).length],
-            ['docs', '문서', docs.length],
+            ['notes', '노트', notes.data?.length],
+            ['vault', '보관함', common.length],
           ] as const
         ).map(([k, label, n]) => (
           <button
@@ -53,22 +61,55 @@ export function Mine() {
             style={{ minHeight: 44, padding: '0 14px', marginBottom: -1, border: 0, borderBottom: `2px solid ${tab === k ? 'var(--accent)' : 'transparent'}`, background: 'none', color: tab === k ? 'var(--text)' : 'var(--text-3)', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
           >
             {label}
-            <span className="mono" style={{ padding: '0 7px', borderRadius: 999, background: 'var(--chip)', color: 'var(--text-2)', fontSize: 12 }}>
-              {n}
-            </span>
+            {n !== undefined && (
+              <span className="mono" style={{ padding: '0 7px', borderRadius: 999, background: 'var(--chip)', color: 'var(--text-2)', fontSize: 12 }}>
+                {n}
+              </span>
+            )}
           </button>
         ))}
       </div>
-      {mine.isLoading && <Skeleton rows={6} height={48} />}
-      {mine.error && <ErrorBox error={mine.error} onRetry={() => void mine.refetch()} />}
-      {mine.data && tab === 'todo' && <TodoTab todos={todos} docs={docs} openDoc={openDoc} />}
-      {mine.data && tab === 'docs' && <DocsTab docs={docs} openId={docId} openDoc={openDoc} />}
-      {open && <DocDrawer key={open.id} doc={open} onClose={() => openDoc(null)} />}
+      {tab === 'todo' && mine.isLoading && <Skeleton rows={6} height={48} />}
+      {tab === 'todo' && mine.error && <ErrorBox error={mine.error} onRetry={() => void mine.refetch()} />}
+      {tab === 'todo' && mine.data && <TodoTab todos={todos} docs={common} openDoc={openDoc} />}
+      {tab === 'notes' && <NotesTab owner={null} />}
+      {tab === 'vault' && <VaultPanel appId={null} />}
     </div>
   );
 }
 
-// ---- 할 일 ----
+/**
+ * 보관함: 계정·키·결제·도메인·법무·메모 문서 목록과 문서 서랍. 내 업무(공통)와 앱 페이지(앱 전용)가 같이 쓴다.
+ * 문서는 공통·앱 전용이 모두 ['mine'] 캐시에 있고, 여기서 appId로 골라 보여 준다. 연 문서는 주소의 ?doc=로 남긴다.
+ * @param appId 앱 전용 보관함이면 앱 id, 내 업무 공통 보관함이면 null
+ */
+export function VaultPanel({ appId }: { appId: number | null }) {
+  const [params, setParams] = useSearchParams();
+  const mine = useMine();
+  const docId = Number(params.get('doc')) || null;
+  // 다른 쿼리(내 업무의 ?tab=)는 그대로 두고 ?doc=만 바꾼다. 열 때는 기록을 남겨 뒤로 가기로 닫히게 한다.
+  const openDoc = (id: number | null) =>
+    setParams(
+      (p) => {
+        const next = new URLSearchParams(p);
+        if (id) next.set('doc', String(id));
+        else next.delete('doc');
+        return next;
+      },
+      { replace: !!docId === !!id },
+    );
+  const docs = (mine.data?.docs ?? []).filter((d) => d.appId === appId);
+  const open = docs.find((d) => d.id === docId) ?? null;
+
+  if (mine.isLoading) return <Skeleton rows={6} height={48} />;
+  if (mine.error) return <ErrorBox error={mine.error} onRetry={() => void mine.refetch()} />;
+  return (
+    <>
+      <DocsTab docs={docs} appId={appId} openId={docId} openDoc={openDoc} />
+      {open && <DocDrawer key={open.id} doc={open} onClose={() => openDoc(null)} />}
+    </>
+  );
+}
 
 function TodoTab({ todos, docs, openDoc }: { todos: MyTodoDto[]; docs: MyDocDto[]; openDoc(id: number): void }) {
   const ui = useUi();
@@ -398,7 +439,13 @@ function docSub(d: MyDocDto): string {
   return d.memo.split('\n')[0] ?? '';
 }
 
-function DocsTab({ docs, openId, openDoc }: { docs: MyDocDto[]; openId: number | null; openDoc(id: number): void }) {
+/**
+ * @param docs 이 보관함의 문서 (공통이면 공통 것만, 앱이면 그 앱 것만)
+ * @param appId 앱 전용 보관함이면 앱 id, 공통이면 null (새 문서가 어디에 생길지)
+ * @param openId 서랍에 열린 문서
+ * @param openDoc 문서 서랍 열기
+ */
+function DocsTab({ docs, appId, openId, openDoc }: { docs: MyDocDto[]; appId: number | null; openId: number | null; openDoc(id: number): void }) {
   const [kind, setKind] = useState<MyDocKind | 'all'>('all');
   const [adding, setAdding] = useState(false);
   const shown = docs
@@ -422,7 +469,12 @@ function DocsTab({ docs, openId, openDoc }: { docs: MyDocDto[]; openId: number |
         </button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '12px 14px', borderRadius: 10, background: 'var(--bg)', fontSize: 13, color: 'var(--text-2)', lineHeight: 1.55 }}>
-        <span>ⓘ Claude가 새 세션에서 이 문서들을 읽어요 ([Hub context]). 저장한 키 값은 넘기지 않고, 이름과 위치, 마지막 4자리만 넘겨요.</span>
+        <span>
+          {appId === null
+            ? 'ⓘ 여기 문서는 모든 앱에 공통이에요. 한 앱에서만 쓰는 계정·키는 그 앱 페이지의 보관함에 두세요. '
+            : 'ⓘ 이 앱에서만 쓰는 문서예요. 여러 앱에 두루 쓰는 계정·키는 내 업무의 보관함에 두세요. '}
+          Claude가 새 세션에서 {appId === null ? '이 문서들을' : '이 문서들과 공통 보관함을'} 읽어요 ([Hub context]). 저장한 키 값은 넘기지 않고, 이름과 위치, 마지막 4자리만 넘겨요.
+        </span>
         {near > 0 && <span style={{ color: 'var(--attn)' }}>14일 안에 만료·갱신되는 문서 {near}개는 대시보드에도 떠요</span>}
       </div>
       <section className="card">
@@ -463,11 +515,12 @@ function DocsTab({ docs, openId, openDoc }: { docs: MyDocDto[]; openId: number |
             <ExpiryPill d={d} />
           </button>
         ))}
-        {!shown.length && <div className="card-empty">{docs.length ? '이 종류의 문서가 없어요' : '아직 문서가 없어요 · 문서 추가로 계정·키·결제·도메인을 남겨요'}</div>}
+        {!shown.length && <div className="card-empty">{docs.length ? '이 종류의 문서가 없어요' : `아직 문서가 없어요 · 문서 추가로 ${appId === null ? '' : '이 앱의 '}계정·키·결제·도메인을 남겨요`}</div>}
       </section>
       {adding && (
         <AddDoc
           kind={kind === 'all' ? 'apikey' : kind}
+          appId={appId}
           onClose={() => setAdding(false)}
           onCreated={(id) => {
             setAdding(false);
@@ -480,14 +533,19 @@ function DocsTab({ docs, openId, openDoc }: { docs: MyDocDto[]; openId: number |
   );
 }
 
-function AddDoc({ kind: kind0, onClose, onCreated }: { kind: MyDocKind; onClose(): void; onCreated(id: number): void }) {
+/**
+ * @param kind 처음 고른 종류
+ * @param appId 앱 전용 보관함이면 앱 id, 공통이면 null
+ * @param onCreated 만든 뒤 그 문서 서랍을 연다
+ */
+function AddDoc({ kind: kind0, appId, onClose, onCreated }: { kind: MyDocKind; appId: number | null; onClose(): void; onCreated(id: number): void }) {
   const ui = useUi();
   const mx = useMineApi();
   const [kind, setKind] = useState<MyDocKind>(kind0);
   const [title, setTitle] = useState('');
   const create = useAction(async () => {
     if (!title.trim()) return;
-    const d = await mx.addDoc(kind, title.trim());
+    const d = await mx.addDoc(kind, title.trim(), appId);
     ui.toast('문서를 만들었어요');
     onCreated(d.id);
   });

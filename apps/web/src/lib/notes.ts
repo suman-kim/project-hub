@@ -2,32 +2,41 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AppNoteDto } from '@hub/shared';
 import { api } from '../api/client';
 
-/** 쿼리 키: 앱마다 노트 목록 하나 */
-export const notesKey = (appId: number) => ['notes', appId] as const;
+/**
+ * 노트가 어디에 속하는지: 앱 id(앱 페이지 노트 탭) 또는 null(내 업무 공통 노트).
+ * 목록·만들기 주소와 캐시 키만 이 값으로 고르고, 고치기·지우기는 노트 id로 한다.
+ */
+export type NoteOwner = number | null;
+
+/** 쿼리 키: 앱마다, 그리고 내 업무에 노트 목록 하나씩 */
+export const notesKey = (owner: NoteOwner) => ['notes', owner ?? 'mine'] as const;
+
+/** 목록·만들기 주소 */
+const listUrl = (owner: NoteOwner) => (owner === null ? '/api/mine/notes' : `/api/apps/${owner}/notes`);
 
 /** 노트를 만들거나 고칠 때 보내는 값 */
 export type NotePatch = Partial<Pick<AppNoteDto, 'folder' | 'title' | 'body' | 'pinned'>>;
 
 /**
- * 앱의 노트 목록. 서버가 고정 먼저, 최근 수정순으로 준다.
- * @param appId 앱 id
+ * 노트 목록. 서버가 고정 먼저, 최근 수정순으로 준다.
+ * @param owner 앱 id 또는 null(내 업무 공통 노트)
  */
-export function useAppNotes(appId: number) {
-  return useQuery({ queryKey: notesKey(appId), queryFn: () => api.get<AppNoteDto[]>(`/api/apps/${appId}/notes`) });
+export function useNotes(owner: NoteOwner) {
+  return useQuery({ queryKey: notesKey(owner), queryFn: () => api.get<AppNoteDto[]>(listUrl(owner)) });
 }
 
 /**
  * 노트 바꾸기. 응답으로 캐시를 바로 고쳐서 자동 저장해도 목록이 튀지 않게 한다.
- * @param appId 앱 id
+ * @param owner 앱 id 또는 null(내 업무 공통 노트)
  */
-export function useNotesApi(appId: number) {
+export function useNotesApi(owner: NoteOwner) {
   const qc = useQueryClient();
-  const key = notesKey(appId);
+  const key = notesKey(owner);
   const put = (n: AppNoteDto) => qc.setQueryData<AppNoteDto[]>(key, (list) => (list ? (list.some((x) => x.id === n.id) ? list.map((x) => (x.id === n.id ? n : x)) : [n, ...list]) : [n]));
   return {
     /** 새 노트. 값을 비우면 빈 노트가 생긴다 */
     create: async (patch: NotePatch = {}) => {
-      const n = await api.post<AppNoteDto>(`/api/apps/${appId}/notes`, patch);
+      const n = await api.post<AppNoteDto>(listUrl(owner), patch);
       put(n);
       return n;
     },

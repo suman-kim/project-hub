@@ -32,7 +32,7 @@ export class ContextService {
       task ? this.knowledge.specsForTask(task.id, task.ideaId) : Promise.resolve([]),
       this.tasks.openForContext(app.id, task?.id ?? null, 5),
       this.knowledge.activeMistakes(app.id, 5),
-      this.mine.contextDocs(8),
+      this.mine.contextDocs(app.id, 8),
     ]);
     return buildContext(
       {

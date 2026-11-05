@@ -11,7 +11,7 @@ const patchSchema = z.object({
 });
 type NoteBody = z.infer<typeof patchSchema>;
 
-/** 앱별 노트: 목록·만들기는 앱 아래, 고치기·지우기는 노트 id로 */
+/** 노트: 목록·만들기는 앱 아래(앱 노트)나 내 업무 아래(공통 노트), 고치기·지우기는 노트 id로 */
 @Controller('api')
 export class NotesController {
   constructor(private readonly notes: NotesService) {}
@@ -26,6 +26,17 @@ export class NotesController {
   @Post('apps/:id/notes')
   create(@Param('id', ParseIntPipe) id: number, @Body(new ZodPipe(patchSchema)) body: NoteBody) {
     return this.notes.create(id, body);
+  }
+
+  /** 내 업무 공통 노트 (앱에 묶이지 않음) */
+  @Get('mine/notes')
+  listMine() {
+    return this.notes.list(null);
+  }
+
+  @Post('mine/notes')
+  createMine(@Body(new ZodPipe(patchSchema)) body: NoteBody) {
+    return this.notes.create(null, body);
   }
 
   /** @param id 노트 id */

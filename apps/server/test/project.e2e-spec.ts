@@ -385,7 +385,7 @@ describe('통합 관리 (X1) e2e', () => {
 
       // 세션 맥락: 이름과 끝 4자리, 만료일만
       const ctx = await http.post('/api/hooks/session-start?kind=session-start&task=').set(auth).send({ session_id: 'mine-ctx', cwd: single, source: 'startup', hook_event_name: 'SessionStart' }).expect(200);
-      expect(ctx.text).toContain('- [외부 API 키] Neople 오픈 API 키 · 값은 Hub에 저장(끝 4자리 9c21) · 만료 2026-11-05');
+      expect(ctx.text).toContain('- [공통 · 외부 API 키] Neople 오픈 API 키 · 값은 Hub에 저장(끝 4자리 9c21) · 만료 2026-11-05');
       expect(ctx.text).not.toContain('a7f3c1e9');
 
       // 할 일에 연결한 뒤 문서를 지우면 연결만 풀린다
@@ -459,6 +459,28 @@ describe('통합 관리 (X1) e2e', () => {
       await http.get(pdfFile.url).set(auth).expect(404);
       expect(onDisk()).toBe(before);
     });
+    it('앱 전용 보관함 문서: appId로 공통과 나뉘고, 세션 맥락에는 공통과 그 앱 것만 들어간다', async () => {
+      const common = (await http.post('/api/mine/docs').set(auth).send({ kind: 'domain', title: '공통 도메인' }).expect(201)).body;
+      expect(common.appId).toBeNull();
+      const own = (await http.post('/api/mine/docs').set(auth).send({ kind: 'apikey', title: 'SR 결제 키', appId: ids.SR }).expect(201)).body;
+      expect(own).toMatchObject({ appId: ids.SR, secretMode: 'ref' });
+      const other = (await http.post('/api/mine/docs').set(auth).send({ kind: 'billing', title: 'MR 서버비', appId: ids.MR }).expect(201)).body;
+      await http.post('/api/mine/docs').set(auth).send({ kind: 'memo', title: '없는 앱', appId: 999999 }).expect(404);
+
+      // /api/mine에는 공통과 앱 전용이 모두 온다(화면이 appId로 나눈다). 고치기·키 값은 앱 전용도 같은 API
+      const docs = (await http.get('/api/mine').set(auth).expect(200)).body.docs as Array<{ id: number; appId: number | null }>;
+      expect(docs.filter((d) => [common.id, own.id, other.id].includes(d.id)).map((d) => d.appId)).toEqual([null, ids.SR, ids.MR]);
+      await http.patch(`/api/mine/docs/${own.id}`).set(auth).send({ secretRef: '1Password · SR' }).expect(200);
+
+      // SR 세션 맥락: 공통 문서와 SR 문서만, 어느 쪽인지 붙여서
+      const ctx = (await http.post('/api/hooks/session-start?kind=session-start&task=').set(auth).send({ session_id: 'vault-ctx', cwd: single, source: 'startup' }).expect(200)).text;
+      expect(ctx).toContain('보관함 (모든 앱 공통과 이 앱 전용');
+      expect(ctx).toContain('- [이 앱 · 외부 API 키] SR 결제 키 · 위치: 1Password · SR');
+      expect(ctx).toContain('- [공통 · 도메인·DNS] 공통 도메인');
+      expect(ctx).not.toContain('MR 서버비');
+
+      for (const d of [common, own, other]) await http.delete(`/api/mine/docs/${d.id}`).set(auth).expect(204);
+    });
   });
 
   describe('앱별 노트', () => {
@@ -497,6 +519,21 @@ describe('통합 관리 (X1) e2e', () => {
       expect(list.map((n: { id: number }) => n.id)).toEqual([a.id]);
       // 다른 앱 목록에는 안 보인다
       expect((await http.get(`/api/apps/${ids.MR}/notes`).set(auth).expect(200)).body).toEqual([]);
+    });
+
+    it('내 업무 공통 노트: 앱에 묶이지 않고, 앱 노트와 섞이지 않는다', async () => {
+      expect((await http.get('/api/mine/notes').set(auth).expect(200)).body).toEqual([]);
+      const n = (await http.post('/api/mine/notes').set(auth).send({ title: '공통 명령어', folder: ' 명령어 ' }).expect(201)).body;
+      expect(n).toMatchObject({ appId: null, title: '공통 명령어', folder: '명령어' });
+      // 고치기·지우기는 앱 노트와 같은 API
+      expect((await http.patch(`/api/notes/${n.id}`).set(auth).send({ body: '```\nbrew update\n```' }).expect(200)).body.body).toBe('```\nbrew update\n```');
+      expect((await http.get('/api/mine/notes').set(auth).expect(200)).body.map((x: { id: number }) => x.id)).toEqual([n.id]);
+      // 앱 노트 목록에는 안 보이고, 공통 목록에는 앱 노트가 안 보인다
+      const appNote = (await http.post(`/api/apps/${ids.MR}/notes`).set(auth).send({ title: 'MR 노트' }).expect(201)).body;
+      expect((await http.get(`/api/apps/${ids.MR}/notes`).set(auth).expect(200)).body.map((x: { id: number }) => x.id)).toEqual([appNote.id]);
+      expect((await http.get('/api/mine/notes').set(auth).expect(200)).body.map((x: { id: number }) => x.id)).toEqual([n.id]);
+      await http.delete(`/api/notes/${appNote.id}`).set(auth).expect(204);
+      await http.delete(`/api/notes/${n.id}`).set(auth).expect(204);
     });
   });
 

@@ -647,9 +647,11 @@ export interface MyTodoDto {
   createdAt: string;
 }
 
-/** 키 값 원문은 담지 않는다. 보기·복사는 GET /api/mine/docs/:id/secret으로 따로 받는다 */
+/** 보관함 문서. 키 값 원문은 담지 않는다. 보기·복사는 GET /api/mine/docs/:id/secret으로 따로 받는다 */
 export interface MyDocDto {
   id: number;
+  /** 이 문서를 쓰는 앱 id. null이면 모든 앱 공통(내 업무 보관함) */
+  appId: number | null;
   kind: MyDocKind;
   title: string;
   fields: Array<[string, string]>;
@@ -691,11 +693,11 @@ export interface MineDto {
   docs: MyDocDto[];
 }
 
-/** 앱별 노트: 명령어 보관, 간단한 메모, 할 일 등 자유 글. 본문은 markdown */
+/** 노트: 명령어 보관, 간단한 메모, 할 일 등 자유 글. 본문은 markdown. 앱 노트와 내 업무 공통 노트가 같은 모양이다 */
 export interface AppNoteDto {
   id: number;
-  /** 노트가 속한 앱 id */
-  appId: number;
+  /** 노트가 속한 앱 id. null이면 앱에 묶이지 않은 내 업무 공통 노트 */
+  appId: number | null;
   /** 노트를 묶는 폴더 이름. 비우면 폴더 없음 */
   folder: string;
   /** 제목. 비우면 화면에서 본문 첫 줄을 보여 준다 */

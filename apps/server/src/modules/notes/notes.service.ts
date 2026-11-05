@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import type { AppNoteDto } from '@hub/shared';
 import { AppsService } from '../apps/apps.service';
 import { AppNote } from './app-note.entity';
@@ -33,7 +33,13 @@ export interface NotePatch {
   pinned?: boolean;
 }
 
-/** 앱별 노트: 목록은 고정 먼저, 그다음 최근 수정순 */
+/**
+ * 노트가 어디에 속하는지: 앱 id, 또는 null(앱에 묶이지 않은 내 업무 공통 노트).
+ * 목록·만들기만 이 값으로 고르고, 고치기·지우기는 노트 id로 한다.
+ */
+export type NoteOwner = number | null;
+
+/** 노트: 앱 노트와 내 업무 공통 노트. 목록은 고정 먼저, 그다음 최근 수정순 */
 @Injectable()
 export class NotesService {
   constructor(
@@ -42,22 +48,27 @@ export class NotesService {
   ) {}
 
   /**
-   * @param appId 앱 id. 없는 앱이면 404
+   * @param owner 앱 id(없는 앱이면 404) 또는 null(내 업무 공통 노트)
    */
-  async list(appId: number): Promise<AppNoteDto[]> {
-    await this.apps.get(appId);
-    const rows = await this.repo.find({ where: { appId }, order: { pinned: 'DESC', updatedAt: 'DESC', id: 'DESC' } });
+  async list(owner: NoteOwner): Promise<AppNoteDto[]> {
+    await this.checkOwner(owner);
+    const rows = await this.repo.find({ where: { appId: owner ?? IsNull() }, order: { pinned: 'DESC', updatedAt: 'DESC', id: 'DESC' } });
     return rows.map(toNoteDto);
   }
 
   /**
-   * @param appId 앱 id
+   * @param owner 앱 id 또는 null(내 업무 공통 노트)
    * @param patch 처음 값 (폴더·제목·본문)
    */
-  async create(appId: number, patch: NotePatch): Promise<AppNoteDto> {
-    await this.apps.get(appId);
-    const n = this.repo.create({ appId, folder: patch.folder?.trim() ?? '', title: patch.title ?? '', body: patch.body ?? '', pinned: patch.pinned ?? false });
+  async create(owner: NoteOwner, patch: NotePatch): Promise<AppNoteDto> {
+    await this.checkOwner(owner);
+    const n = this.repo.create({ appId: owner, folder: patch.folder?.trim() ?? '', title: patch.title ?? '', body: patch.body ?? '', pinned: patch.pinned ?? false });
     return toNoteDto(await this.repo.save(n));
+  }
+
+  /** 앱 노트면 그 앱이 있는지 본다(없으면 404). 공통 노트는 볼 것이 없다 */
+  private async checkOwner(owner: NoteOwner): Promise<void> {
+    if (owner !== null) await this.apps.get(owner);
   }
 
   /**

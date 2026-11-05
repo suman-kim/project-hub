@@ -16,7 +16,8 @@ const todoPatchSchema = z.object({
   done: z.boolean().optional(),
   docId: z.number().int().nullable().optional(),
 });
-const addDocSchema = z.object({ kind: z.enum(MY_DOC_KINDS), title: z.string().trim().min(1).max(300) });
+/** appId를 주면 그 앱 전용 문서, 빼거나 null이면 모든 앱 공통 */
+const addDocSchema = z.object({ kind: z.enum(MY_DOC_KINDS), title: z.string().trim().min(1).max(300), appId: z.number().int().positive().nullable().optional() });
 const docPatchSchema = z.object({
   kind: z.enum(MY_DOC_KINDS).optional(),
   title: z.string().max(300).optional(),
@@ -30,7 +31,7 @@ const docPatchSchema = z.object({
 const secretSchema = z.object({ value: z.string().max(10000) });
 const fileNameSchema = z.string().trim().min(1, '파일 이름(name)이 필요하다').max(1000);
 
-/** 내 업무 화면: 앱에 묶이지 않는 내 할 일과 문서. 키 값 원문은 secret 엔드포인트로만 오간다 */
+/** 내 업무 화면: 앱에 묶이지 않는 내 할 일과 보관함 문서(앱 전용 문서도 같은 API). 키 값 원문은 secret 엔드포인트로만 오간다 */
 @Controller('api/mine')
 export class MineController {
   constructor(
@@ -61,7 +62,7 @@ export class MineController {
 
   @Post('docs')
   addDoc(@Body(new ZodPipe(addDocSchema)) body: z.infer<typeof addDocSchema>) {
-    return this.mine.addDoc(body.kind, body.title);
+    return this.mine.addDoc(body.kind, body.title, body.appId ?? null);
   }
 
   @Patch('docs/:id')

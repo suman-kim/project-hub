@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { AppDto, AppNoteDto } from '@hub/shared';
+import type { AppNoteDto } from '@hub/shared';
 import { useAction } from '../api/mutations';
 import { BlockEditor } from '../components/BlockEditor';
 import { Select } from '../components/Select';
 import { ErrorBox, Skeleton, useUi } from '../components/ui';
 import { parseBlocks, previewOf, serializeBlocks, type Block } from '../lib/blocks';
 import { ago } from '../lib/format';
-import { noteName, sortNotes, useAppNotes, useNotesApi, type NotePatch } from '../lib/notes';
+import { noteName, sortNotes, useNotes, useNotesApi, type NoteOwner, type NotePatch } from '../lib/notes';
 import { usePrefs } from '../lib/prefs';
 
-// ---- 노트: 앱마다 노션처럼 쓰는 글 (명령어 보관, 간단한 메모, 할 일) ----
+// ---- 노트: 앱마다, 그리고 내 업무에서 노션처럼 쓰는 글 (명령어 보관, 간단한 메모, 할 일) ----
 
 /** 자동 저장: 손을 뗀 뒤 이만큼 지나면 저장한다 */
 const SAVE_DELAY_MS = 1000;
@@ -19,12 +19,22 @@ const NO_FOLDER = '폴더 없음';
 /** 폴더 선택 목록에서 "새 폴더" 항목의 값 */
 const NEW_FOLDER = '\u0000new';
 
-/** 앱 페이지의 노트 탭 */
-export function NotesTab({ app }: { app: AppDto }) {
+/** 노트 탭이 놓이는 곳마다 다른 안내 문구 */
+const PLACE_TEXT: Record<'app' | 'mine', { hint: string; empty: string }> = {
+  app: { hint: '이 앱에서 자주 쓰는 명령어, 간단한 메모, 할 일을 노션처럼 적어 둬요 · 쓰는 대로 저장돼요', empty: '아직 노트가 없어요 · 자주 쓰는 명령어나 할 일부터 적어 보세요' },
+  mine: { hint: '앱에 묶이지 않는 명령어, 메모, 할 일을 노션처럼 적어 둬요 · 모든 앱에 공통이고, 쓰는 대로 저장돼요', empty: '아직 노트가 없어요 · 여러 앱에 두루 쓰는 명령어나 할 일부터 적어 보세요' },
+};
+
+/**
+ * 노트 탭: 앱 페이지와 내 업무 화면이 같이 쓴다. 고른 노트는 주소의 ?note=로 남긴다(다른 쿼리는 그대로 둔다).
+ * @param owner 앱 id(앱 노트) 또는 null(내 업무 공통 노트)
+ */
+export function NotesTab({ owner }: { owner: NoteOwner }) {
   const { m } = usePrefs();
   const ui = useUi();
-  const notes = useAppNotes(app.id);
-  const api = useNotesApi(app.id);
+  const notes = useNotes(owner);
+  const api = useNotesApi(owner);
+  const text = PLACE_TEXT[owner === null ? 'mine' : 'app'];
   const [params, setParams] = useSearchParams();
   const [q, setQ] = useState('');
   const sorted = useMemo(() => sortNotes(notes.data ?? []), [notes.data]);
@@ -34,7 +44,16 @@ export function NotesTab({ app }: { app: AppDto }) {
   const picked = sorted.find((n) => n.id === selId) ?? null;
   // 모바일은 목록부터 보여 준다. 넓은 화면은 첫 노트를 바로 연다.
   const current = picked ?? (m ? null : sorted[0] ?? null);
-  const select = (n: AppNoteDto | null) => setParams(n ? { note: String(n.id) } : {}, { replace: !n });
+  const select = (n: AppNoteDto | null) =>
+    setParams(
+      (p) => {
+        const next = new URLSearchParams(p);
+        if (n) next.set('note', String(n.id));
+        else next.delete('note');
+        return next;
+      },
+      { replace: !n },
+    );
   const folders = useMemo(() => Array.from(new Set(sorted.map((n) => n.folder).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'ko')), [sorted]);
 
   const create = useAction(async () => {
@@ -57,10 +76,10 @@ export function NotesTab({ app }: { app: AppDto }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 }}>
-      <span style={{ fontSize: 13, color: 'var(--text-3)' }}>이 앱에서 자주 쓰는 명령어, 간단한 메모, 할 일을 노션처럼 적어 둬요 · 쓰는 대로 저장돼요</span>
+      <span style={{ fontSize: 13, color: 'var(--text-3)' }}>{text.hint}</span>
       {!sorted.length ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12, padding: '28px 24px', border: '1px dashed var(--line-strong)', borderRadius: 12, background: 'var(--surface)' }}>
-          <span style={{ fontSize: 14, color: 'var(--text-3)' }}>아직 노트가 없어요 · 자주 쓰는 명령어나 할 일부터 적어 보세요</span>
+          <span style={{ fontSize: 14, color: 'var(--text-3)' }}>{text.empty}</span>
           <button type="button" className="btn btn-primary" disabled={create.busy} onClick={() => void create.run()}>
             첫 노트 만들기
           </button>
@@ -154,7 +173,7 @@ type SaveState = 'saved' | 'dirty' | 'saving' | 'error';
 
 interface EditorProps {
   note: AppNoteDto;
-  /** 이 앱에 있는 폴더 이름들 (선택 목록) */
+  /** 같은 곳(이 앱, 또는 내 업무)에 있는 폴더 이름들 (선택 목록) */
   folders: string[];
   api: ReturnType<typeof useNotesApi>;
   onDelete(): void;
