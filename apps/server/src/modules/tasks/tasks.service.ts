@@ -43,6 +43,47 @@ export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
   cancelled: '취소',
 };
 
+/**
+ * task를 고칠 때 히스토리에 적는 항목 이름. 이 순서대로 적는다.
+ * 상태·메모는 따로 기록하고, branch·prUrl은 세션이 남기는 값이라 "고침"으로 치지 않는다.
+ */
+export const TASK_FIELD_LABEL = {
+  title: '제목',
+  description: '설명',
+  type: '종류',
+  assignee: '담당',
+  size: '크기',
+  priority: '우선순위',
+  dueDate: '기한',
+  stage: '단계',
+  repoId: '저장소',
+  tag: '태그',
+  dependsOn: '선행 task',
+  bug: '버그 정보',
+} as const satisfies Partial<Record<keyof UpdateTaskInput, string>>;
+
+/**
+ * 고치기 요청에서 값이 실제로 바뀌는 항목 이름 (TASK_FIELD_LABEL 순서). 같은 값을 다시 보낸 항목은 빠진다.
+ * @param task 고치기 전 task
+ * @param input 고치기 요청 (title은 스키마가 앞뒤 공백을 뗀 값)
+ */
+export function changedFields(task: Task, input: UpdateTaskInput): string[] {
+  const out: string[] = [];
+  for (const [key, label] of Object.entries(TASK_FIELD_LABEL) as Array<[keyof typeof TASK_FIELD_LABEL, string]>) {
+    const next = input[key];
+    if (next === undefined) continue;
+    if (key === 'bug') {
+      // 버그 정보는 보낸 칸만 덮어쓴다(update와 같은 방식)
+      const before = (task.metadata.bug as BugInfo | undefined) ?? {};
+      if (JSON.stringify({ ...before, ...(next as object) }) !== JSON.stringify(before)) out.push(label);
+      continue;
+    }
+    const after = key === 'dependsOn' ? (next as string[]).map((d) => d.toUpperCase()) : next;
+    if (JSON.stringify(after ?? null) !== JSON.stringify(task[key] ?? null)) out.push(label);
+  }
+  return out;
+}
+
 /** 히스토리에 남길 task 생성 문장 */
 function createdSummary(t: Task): string {
   if (t.type === 'bug') return `버그 등록: ${t.id} ${t.title}`;
@@ -180,6 +221,12 @@ export class TasksService {
     }
   }
 
+  /**
+   * task 고치기와 상태 바꾸기. 내용(제목·설명·종류 등)은 상태와 상관없이 고칠 수 있고, 바뀐 항목은 히스토리에 "고침"으로 남긴다.
+   * @param id task ID (대소문자 상관없음)
+   * @param input 바꿀 값. 보낸 항목만 바꾼다
+   * @param actor 히스토리에 남길 주체 (화면 me, MCP claude, 자동 hub)
+   */
   async update(id: string, input: UpdateTaskInput, actor: ActivityActor = 'me'): Promise<Task> {
     const task = await this.get(id);
     const { status, note, bug, ...fields } = input;
@@ -191,7 +238,9 @@ export class TasksService {
       if (fields.dependsOn.includes(task.id)) throw new BadRequestException('자기 자신을 의존할 수 없다');
       const found = await this.repo.countBy({ id: In(fields.dependsOn) });
       if (found !== new Set(fields.dependsOn).size) throw new BadRequestException('없는 task를 의존한다');
+      await this.assertNoCycle(task.id, fields.dependsOn);
     }
+    const edited = changedFields(task, input);
     Object.assign(task, fields);
     if (bug) task.metadata = { ...task.metadata, bug: { ...((task.metadata.bug as BugInfo | undefined) ?? {}), ...bug } };
 
@@ -212,7 +261,34 @@ export class TasksService {
     } else if (note) {
       await this.activities.record({ appId: saved.appId, kind: 'task.note', actor, refType: 'task', refId: saved.id, summary: `${saved.id} 메모: ${note}` });
     }
+    if (edited.length) {
+      await this.activities.record({
+        appId: saved.appId, kind: 'task.edit', actor, refType: 'task', refId: saved.id,
+        summary: `${saved.id} 고침 (${edited.join(', ')}): ${saved.title}`,
+        data: { fields: edited },
+      });
+    }
     return saved;
+  }
+
+  /**
+   * 선행 task를 deps로 두면 순환이 생기는지 본다. deps에서 선행을 거슬러 올라가다 id가 나오면 거부한다.
+   * @param id 고치는 task
+   * @param deps 새 선행 task ID (대문자)
+   */
+  private async assertNoCycle(id: string, deps: string[]): Promise<void> {
+    const seen = new Set<string>();
+    let frontier = deps;
+    while (frontier.length) {
+      const rows = await this.repo.find({ where: { id: In(frontier) }, select: { id: true, dependsOn: true } });
+      const next: string[] = [];
+      for (const r of rows) {
+        seen.add(r.id);
+        if (r.dependsOn.includes(id)) throw new BadRequestException(`선행 task가 순환한다: ${r.id}는 이미 ${id}가 끝나기를 기다린다`);
+        next.push(...r.dependsOn.filter((d) => !seen.has(d)));
+      }
+      frontier = [...new Set(next)];
+    }
   }
 
   changeStatus(id: string, status: TaskStatus, note?: string, actor: ActivityActor = 'hub'): Promise<Task> {

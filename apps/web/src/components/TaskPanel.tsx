@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type { IdeaDto, RunDto, SpecDto, TaskBriefDto, TaskDto, TaskNote, TaskStatus } from '@hub/shared';
@@ -16,6 +17,7 @@ import { IconClose } from './icons';
 import { Select } from './Select';
 import { CodeBox, useCopy, useUi } from './ui';
 import { SESSION_STATE, TaskSessions } from '../screens/AppSessions';
+import { EditTaskDialog } from '../screens/dialogs/EditTaskDialog';
 
 /** 어느 화면 위에서든 ?task=ID로 여는 오른쪽 패널 */
 export function TaskPanelHost() {
@@ -23,7 +25,7 @@ export function TaskPanelHost() {
   useEffect(() => {
     if (!taskId) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !document.querySelector('[role=alertdialog],[role=dialog]')) close();
+      if (e.key === 'Escape' && !e.defaultPrevented && !document.querySelector('[role=alertdialog],[role=dialog]')) close();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -49,6 +51,8 @@ function TaskPanel({ id, onClose }: { id: string; onClose(): void }) {
   const [raw, setRaw] = useState(false);
   const [openDoc, setOpenDoc] = useState<number | null>(null);
   const [note, setNote] = useState('');
+  /** task 고치기 창을 열었는지 */
+  const [editing, setEditing] = useState(false);
 
   const setStatus = useAction(async (to: TaskStatus) => {
     if (!t) return;
@@ -82,7 +86,7 @@ function TaskPanel({ id, onClose }: { id: string; onClose(): void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
-      if (e.key !== 'r' || e.metaKey || e.ctrlKey || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key !== 'r' || e.metaKey || e.ctrlKey || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || editing) return;
       if (t && t.assignee === 'claude' && !ctx.runBlock(t) && !run.busy) {
         e.preventDefault();
         void run.run();
@@ -167,10 +171,15 @@ function TaskPanel({ id, onClose }: { id: string; onClose(): void }) {
                     PR {prNo(t.prUrl)} ↗
                   </a>
                 )}
+                <button type="button" className="btn" title="제목, 설명, 종류, 담당, 크기, 우선순위, 기한, 단계, 태그, 선행 task를 고쳐요" onClick={() => setEditing(true)}>
+                  고치기
+                </button>
                 <button type="button" className="btn" disabled={copyBrief.busy} title="설명, 진행 메모, 연결 문서까지 한 덩어리 글로 복사해요 · 어느 세션이나 웹 앱에 붙여 넣으면 바로 일할 수 있어요" onClick={() => void copyBrief.run()}>
                   task 정보 복사
                 </button>
               </div>
+              {/* 패널(z-index 35) 안에 그리면 패널을 가리지 못해서 body 바로 아래에 띄운다 */}
+              {editing && createPortal(<EditTaskDialog task={t} onClose={() => setEditing(false)} />, document.body)}
               {app && <TaskSessions task={t} appId={app.id} />}
               {block && t.assignee === 'claude' && ['todo', 'doing', 'input'].includes(t.status) && !active && <span style={{ fontSize: 12, color: 'var(--attn)', marginTop: -4 }}>{block}</span>}
               {t.assignee === 'claude' && ['todo', 'doing', 'input'].includes(t.status) && !active && <SessionRun task={t} appId={app?.id} />}
