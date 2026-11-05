@@ -11,7 +11,7 @@
   - `list_tasks`, `get_task`: task 조회
   - `create_tasks`: task 생성 (기획을 쪼갤 때도 사용)
   - `update_task_status`: 상태 변경과 진행 메모
-  - `update_task`: task 내용 고치기 (제목, 설명, 종류, 담당, 크기, 우선순위, 기한, 단계, 저장소, 태그, 선행 task). 상태는 그대로 두고, 고친 항목은 히스토리에 남는다
+  - `update_task`: task 내용 수정 (제목, 설명, 종류, 담당, 크기, 우선순위, 기한, 단계, 저장소, 태그, 선행 task). 상태는 그대로 두고, 수정한 항목은 히스토리에 남는다
   - `get_spec`, `save_spec`: 기획 명세와 인수인계 문서
   - `record_mistake`: 실수 기록
   - `submit_idea`: 아이디어·기획 제출 (app을 빼면 새 앱 기획)

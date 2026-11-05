@@ -158,7 +158,7 @@ export function createHubMcpServer(deps: HubMcpDeps): McpServer {
     'update_task',
     {
       description:
-        'task 내용을 고친다: 제목, 설명, 종류, 담당, 크기, 우선순위, 기한, 단계, 저장소, 태그, 선행 task. 보낸 항목만 바꾸고 상태는 그대로 둔다(상태는 update_task_status). 끝난 task도 고칠 수 있고, 바뀐 항목은 히스토리에 남는다.',
+        'task 내용을 수정한다: 제목, 설명, 종류, 담당, 크기, 우선순위, 기한, 단계, 저장소, 태그, 선행 task. 보낸 항목만 바꾸고 상태는 그대로 둔다(상태는 update_task_status). 끝난 task도 수정할 수 있고, 수정한 항목은 히스토리에 남는다.',
       inputSchema: {
         id: z.string(),
         title: z.string().trim().min(1).optional(),
@@ -184,7 +184,7 @@ export function createHubMcpServer(deps: HubMcpDeps): McpServer {
           repoId: await repoIdOf(deps, before.app.code, repo),
         };
         const changed = changedFields(before, input);
-        if (Object.values(input).every((v) => v === undefined)) throw new BadRequestException('고칠 항목이 없다 (title, description 등을 하나 이상 보낸다)');
+        if (Object.values(input).every((v) => v === undefined)) throw new BadRequestException('수정할 항목이 없다 (title, description 등을 하나 이상 보낸다)');
         const t = await tasks.update(before.id, input, 'claude');
         const { id: tid, title: tt, status, type: ty, assignee: as, size: sz, priority: pr, dueDate, stage: sg, repoId, tag: tg, dependsOn } = toTaskDto(t, t.app.code);
         return { id: tid, title: tt, status, type: ty, assignee: as, size: sz, priority: pr, dueDate, stage: sg, repoId, tag: tg, dependsOn, changed };

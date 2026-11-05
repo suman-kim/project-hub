@@ -44,8 +44,8 @@ export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
 };
 
 /**
- * task를 고칠 때 히스토리에 적는 항목 이름. 이 순서대로 적는다.
- * 상태·메모는 따로 기록하고, branch·prUrl은 세션이 남기는 값이라 "고침"으로 치지 않는다.
+ * task를 수정할 때 히스토리에 적는 항목 이름. 이 순서대로 적는다.
+ * 상태·메모는 따로 기록하고, branch·prUrl은 세션이 남기는 값이라 "수정"으로 치지 않는다.
  */
 export const TASK_FIELD_LABEL = {
   title: '제목',
@@ -63,9 +63,9 @@ export const TASK_FIELD_LABEL = {
 } as const satisfies Partial<Record<keyof UpdateTaskInput, string>>;
 
 /**
- * 고치기 요청에서 값이 실제로 바뀌는 항목 이름 (TASK_FIELD_LABEL 순서). 같은 값을 다시 보낸 항목은 빠진다.
- * @param task 고치기 전 task
- * @param input 고치기 요청 (title은 스키마가 앞뒤 공백을 뗀 값)
+ * 수정 요청에서 값이 실제로 바뀌는 항목 이름 (TASK_FIELD_LABEL 순서). 같은 값을 다시 보낸 항목은 빠진다.
+ * @param task 수정 전 task
+ * @param input 수정 요청 (title은 스키마가 앞뒤 공백을 뗀 값)
  */
 export function changedFields(task: Task, input: UpdateTaskInput): string[] {
   const out: string[] = [];
@@ -222,7 +222,7 @@ export class TasksService {
   }
 
   /**
-   * task 고치기와 상태 바꾸기. 내용(제목·설명·종류 등)은 상태와 상관없이 고칠 수 있고, 바뀐 항목은 히스토리에 "고침"으로 남긴다.
+   * task 수정과 상태 바꾸기. 내용(제목·설명·종류 등)은 상태와 상관없이 수정할 수 있고, 바뀐 항목은 히스토리에 "수정"으로 남긴다.
    * @param id task ID (대소문자 상관없음)
    * @param input 바꿀 값. 보낸 항목만 바꾼다
    * @param actor 히스토리에 남길 주체 (화면 me, MCP claude, 자동 hub)
@@ -264,7 +264,7 @@ export class TasksService {
     if (edited.length) {
       await this.activities.record({
         appId: saved.appId, kind: 'task.edit', actor, refType: 'task', refId: saved.id,
-        summary: `${saved.id} 고침 (${edited.join(', ')}): ${saved.title}`,
+        summary: `${saved.id} 수정 (${edited.join(', ')}): ${saved.title}`,
         data: { fields: edited },
       });
     }
@@ -273,7 +273,7 @@ export class TasksService {
 
   /**
    * 선행 task를 deps로 두면 순환이 생기는지 본다. deps에서 선행을 거슬러 올라가다 id가 나오면 거부한다.
-   * @param id 고치는 task
+   * @param id 수정하는 task
    * @param deps 새 선행 task ID (대문자)
    */
   private async assertNoCycle(id: string, deps: string[]): Promise<void> {

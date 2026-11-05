@@ -7,8 +7,8 @@ import { Select } from '../../components/Select';
 import { ASSIGNEE, PRIORITY, SEVERITY, TASK_ST, TASK_TYPE, TONE } from '../../lib/labels';
 
 /**
- * task 추가·고치기 창이 함께 쓰는 입력 칸과 입력값.
- * 추가 창은 newDraft로 빈 값에서, 고치기 창은 draftOf로 지금 값에서 시작하고, 서버로 보낼 때는 draftPayload로 바꾼다.
+ * task 추가·수정 창이 함께 쓰는 입력 칸과 입력값.
+ * 추가 창은 newDraft로 빈 값에서, 수정 창은 draftOf로 지금 값에서 시작하고, 서버로 보낼 때는 draftPayload로 바꾼다.
  */
 
 /** 버그 칸 입력값 (종류가 버그일 때만 보낸다) */
@@ -66,7 +66,7 @@ export function newDraft(preset: { type?: TaskType; assignee?: TaskAssignee }): 
 }
 
 /**
- * 고치기 창의 첫 값: 지금 task 값
+ * 수정 창의 첫 값: 지금 task 값
  * @param t 고칠 task
  */
 export function draftOf(t: TaskDto): TaskDraft {
@@ -107,7 +107,7 @@ export interface TaskPayload {
 /**
  * 입력값 → 서버로 보낼 값. 빈 칸은 null로 바꾼다.
  * @param d 입력값
- * @param keepEmptyBug 버그 칸의 빈 값도 보낼지 (고치기는 지운 칸을 비우려고 보낸다, 추가는 뺀다)
+ * @param keepEmptyBug 버그 칸의 빈 값도 보낼지 (수정은 지운 칸을 비우려고 보낸다, 추가는 뺀다)
  */
 export function draftPayload(d: TaskDraft, keepEmptyBug = false): TaskPayload {
   const bug = Object.fromEntries(Object.entries(d.bug).map(([k, v]) => [k, typeof v === 'string' ? v.trim() : v]).filter(([, v]) => keepEmptyBug || v)) as Partial<BugDraft>;
@@ -127,7 +127,7 @@ export function draftPayload(d: TaskDraft, keepEmptyBug = false): TaskPayload {
   };
 }
 
-/** 고친 항목 이름. 서버 히스토리 문장(TASK_FIELD_LABEL)과 같은 이름·순서 */
+/** 수정한 항목 이름. 서버 히스토리 문장(TASK_FIELD_LABEL)과 같은 이름·순서 */
 const FIELD_LABEL: Record<keyof TaskPayload, string> = {
   title: '제목',
   description: '설명',
@@ -144,7 +144,7 @@ const FIELD_LABEL: Record<keyof TaskPayload, string> = {
 };
 
 /**
- * 고치기 전후를 비교해 바뀐 항목만 담은 PATCH 본문과 바뀐 항목 이름을 만든다.
+ * 수정 전후를 비교해 바뀐 항목만 담은 PATCH 본문과 수정한 항목 이름을 만든다.
  * @param before 창을 열 때 값
  * @param after 지금 입력값
  */
@@ -162,11 +162,11 @@ export function draftPatch(before: TaskDraft, after: TaskDraft): { patch: Partia
 }
 
 /**
- * task 입력 칸 (앱 고르기는 빼고). 추가·고치기 창이 함께 쓴다.
+ * task 입력 칸 (앱 고르기는 빼고). 추가·수정 창이 함께 쓴다.
  * @param appCode 이 task의 앱 (단계·저장소·선행 task 후보가 이 앱 것)
  * @param draft 입력값
  * @param onChange 입력값이 바뀔 때
- * @param selfId 고치는 task의 ID. 자기 자신과 이 task를 기다리는 task는 선행 후보에서 뺀다(순환 방지)
+ * @param selfId 수정하는 task의 ID. 자기 자신과 이 task를 기다리는 task는 선행 후보에서 뺀다(순환 방지)
  * @param autoFocus 제목 칸에 커서를 둘지
  */
 export function TaskFields({ appCode, draft, onChange, selfId, autoFocus }: { appCode: string; draft: TaskDraft; onChange(next: TaskDraft): void; selfId?: string; autoFocus?: boolean }) {

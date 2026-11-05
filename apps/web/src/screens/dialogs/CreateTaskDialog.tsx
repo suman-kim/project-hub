@@ -19,7 +19,7 @@ export interface CreateTaskPreset {
   assignee?: TaskAssignee;
 }
 
-/** task 추가. 입력 칸은 고치기 창과 같은 TaskFields를 쓰고, 종류가 버그면 버그 칸이 펼쳐진다 */
+/** task 추가. 입력 칸은 수정 창과 같은 TaskFields를 쓰고, 종류가 버그면 버그 칸이 펼쳐진다 */
 export function CreateTaskDialog({ preset, onClose }: { preset: CreateTaskPreset; onClose(): void }) {
   const ui = useUi();
   const qc = useQueryClient();

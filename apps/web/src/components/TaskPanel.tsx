@@ -51,7 +51,7 @@ function TaskPanel({ id, onClose }: { id: string; onClose(): void }) {
   const [raw, setRaw] = useState(false);
   const [openDoc, setOpenDoc] = useState<number | null>(null);
   const [note, setNote] = useState('');
-  /** task 고치기 창을 열었는지 */
+  /** task 수정 창을 열었는지 */
   const [editing, setEditing] = useState(false);
 
   const setStatus = useAction(async (to: TaskStatus) => {
@@ -171,8 +171,8 @@ function TaskPanel({ id, onClose }: { id: string; onClose(): void }) {
                     PR {prNo(t.prUrl)} ↗
                   </a>
                 )}
-                <button type="button" className="btn" title="제목, 설명, 종류, 담당, 크기, 우선순위, 기한, 단계, 태그, 선행 task를 고쳐요" onClick={() => setEditing(true)}>
-                  고치기
+                <button type="button" className="btn" title="제목, 설명, 종류, 담당, 크기, 우선순위, 기한, 단계, 태그, 선행 task를 수정해요" onClick={() => setEditing(true)}>
+                  수정
                 </button>
                 <button type="button" className="btn" disabled={copyBrief.busy} title="설명, 진행 메모, 연결 문서까지 한 덩어리 글로 복사해요 · 어느 세션이나 웹 앱에 붙여 넣으면 바로 일할 수 있어요" onClick={() => void copyBrief.run()}>
                   task 정보 복사
