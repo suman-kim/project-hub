@@ -15,6 +15,7 @@ import { HooksModule } from './modules/hooks/hooks.module';
 import { IdeasApiModule } from './modules/ideas/ideas-api.module';
 import { McpModule } from './modules/mcp/mcp.module';
 import { MineModule } from './modules/mine/mine.module';
+import { NotesModule } from './modules/notes/notes.module';
 import { OverviewModule } from './modules/overview/overview.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { ReposModule } from './modules/repos/repos.module';
@@ -25,7 +26,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 
 @Module({
-  imports: [ConfigModule, DbModule, RealtimeModule, AppsModule, TasksModule, HooksModule, McpModule, RunnerModule, IdeasApiModule, SchedulerModule, RulesModule, CostsModule, SettingsModule, ActivitiesModule, ReposModule, DeploymentsModule, OverviewModule, AuthModule, FilesModule, EnvironmentModule, MineModule],
+  imports: [ConfigModule, DbModule, RealtimeModule, AppsModule, TasksModule, HooksModule, McpModule, RunnerModule, IdeasApiModule, SchedulerModule, RulesModule, CostsModule, SettingsModule, ActivitiesModule, ReposModule, DeploymentsModule, OverviewModule, AuthModule, FilesModule, EnvironmentModule, MineModule, NotesModule],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: TokenGuard }],
 })

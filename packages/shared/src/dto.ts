@@ -690,3 +690,20 @@ export interface MineDto {
   todos: MyTodoDto[];
   docs: MyDocDto[];
 }
+
+/** 앱별 노트: 명령어 보관, 간단한 메모, 할 일 등 자유 글. 본문은 markdown */
+export interface AppNoteDto {
+  id: number;
+  /** 노트가 속한 앱 id */
+  appId: number;
+  /** 노트를 묶는 폴더 이름. 비우면 폴더 없음 */
+  folder: string;
+  /** 제목. 비우면 화면에서 본문 첫 줄을 보여 준다 */
+  title: string;
+  /** 본문 (markdown) */
+  body: string;
+  /** 목록 맨 위 고정 */
+  pinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
