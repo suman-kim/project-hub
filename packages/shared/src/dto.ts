@@ -706,6 +706,30 @@ export interface AppNoteDto {
   body: string;
   /** 목록 맨 위 고정 */
   pinned: boolean;
+  /** 첨부 파일, 올린 순. 그림은 본문에 ![이름](url) 블록으로도 들어간다 */
+  files: NoteFileDto[];
   createdAt: string;
+  /** 마지막 수정 시각. 첨부를 붙이거나 지울 때도 오른다 */
   updatedAt: string;
+}
+
+/** 노트 첨부 파일. 내용은 Hub 폴더(~/.hub/files/)에 그대로 두고 목록만 DB에 있다 */
+export interface NoteFileDto {
+  id: number;
+  /** 첨부한 노트 id */
+  noteId: number;
+  /** 올린 파일 이름 */
+  name: string;
+  kind: MyFileKind;
+  /** 바이트 */
+  size: number;
+  /** 화면 안에서 여는 주소(그림 블록의 src로도 쓴다). 뒤에 ?download=1을 붙이면 내려받는다 */
+  url: string;
+  createdAt: string;
+}
+
+/** 노트에 파일을 올린 응답: 첨부 목록이 담긴 노트와 방금 올린 파일 */
+export interface NoteUploadDto {
+  note: AppNoteDto;
+  file: NoteFileDto;
 }

@@ -3,7 +3,7 @@ import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { MY_DOC_KINDS, MY_DOC_RENEWS, MY_SECRET_MODES } from '@hub/shared';
 import { ZodPipe } from '../../common/zod.pipe';
-import { contentDisposition, contentTypeOf, MAX_FILE_BYTES, readUpload } from './doc-files';
+import { MAX_FILE_BYTES, readUpload, sendStoredFile } from '../../common/stored-files';
 import { DocFilesService } from './doc-files.service';
 import { MineService } from './mine.service';
 
@@ -104,15 +104,7 @@ export class MineController {
   @Get('files/:fileId')
   async file(@Param('fileId', ParseIntPipe) fileId: number, @Query('download') download: string | undefined, @Res() res: Response) {
     const { file, root } = await this.files.open(fileId);
-    const inline = !download && file.kind !== 'other';
-    res.setHeader('Content-Type', contentTypeOf(file.name, file.kind));
-    res.setHeader('Content-Disposition', contentDisposition(file.name, !inline));
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Cache-Control', 'private, no-cache');
-    // PDF는 sandbox에서 브라우저 보기 화면이 뜨지 않는다. PDF 보기에는 페이지 스크립트가 돌지 않으니 뺀다.
-    if (file.kind !== 'pdf') res.setHeader('Content-Security-Policy', 'sandbox');
-    // ~/.hub처럼 점으로 시작하는 폴더도 열리게 root를 따로 준다(저장 이름은 Hub가 만든 uuid다).
-    res.sendFile(file.storedName, { root });
+    sendStoredFile(res, file, root, !!download);
   }
 
   /** 첨부 하나 지우기. 첨부 목록을 담은 문서를 돌려준다 */

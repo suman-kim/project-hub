@@ -1,14 +1,19 @@
+/**
+ * 첨부 파일을 디스크에 두고 내보내는 공통 도구. 보관함 문서 첨부와 노트 첨부가 같이 쓴다.
+ * 목록(DB)은 AttachmentFiles(attachment-files.ts)가 다룬다.
+ */
 import { BadRequestException, PayloadTooLargeException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import type { Readable } from 'node:stream';
+import type { Response } from 'express';
 import type { MyFileKind } from '@hub/shared';
 
 /** 한 파일 최대 크기 (바이트) */
 export const MAX_FILE_BYTES = 20 * 1024 * 1024;
-/** 문서 하나에 붙일 수 있는 파일 수 */
-export const MAX_FILES_PER_DOC = 50;
+/** 주인(보관함 문서, 노트) 하나에 붙일 수 있는 파일 수 */
+export const MAX_FILES_PER_OWNER = 50;
 /** 올린 이름 최대 길이 */
 const MAX_NAME = 200;
 
@@ -118,4 +123,24 @@ export class DiskFileStore {
       if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
     }
   }
+}
+
+/**
+ * 첨부 파일 내용을 응답으로 보낸다. 화면 안 보기(PDF·md·텍스트·그림)는 inline, download면 내려받기.
+ * 대시보드와 같은 출처라서, 열리는 파일이 스크립트를 돌리지 못하게 PDF 밖에는 CSP sandbox를 건다.
+ * @param res 응답
+ * @param file 올린 이름·보기 방식·저장 이름
+ * @param root 저장 폴더 (DiskFileStore.dir)
+ * @param download true면 늘 내려받기
+ */
+export function sendStoredFile(res: Response, file: { name: string; kind: MyFileKind; storedName: string }, root: string, download: boolean): void {
+  const inline = !download && file.kind !== 'other';
+  res.setHeader('Content-Type', contentTypeOf(file.name, file.kind));
+  res.setHeader('Content-Disposition', contentDisposition(file.name, !inline));
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Cache-Control', 'private, no-cache');
+  // PDF는 sandbox에서 브라우저 보기 화면이 뜨지 않는다. PDF 보기에는 페이지 스크립트가 돌지 않으니 뺀다.
+  if (file.kind !== 'pdf') res.setHeader('Content-Security-Policy', 'sandbox');
+  // ~/.hub처럼 점으로 시작하는 폴더도 열리게 root를 따로 준다(저장 이름은 Hub가 만든 uuid다).
+  res.sendFile(file.storedName, { root });
 }

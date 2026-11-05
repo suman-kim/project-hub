@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { AppNoteDto } from '@hub/shared';
 import { useAction } from '../api/mutations';
-import { BlockEditor } from '../components/BlockEditor';
+import { AttachmentList, uploadable } from '../components/Attachments';
+import { BlockEditor, type UploadedFile } from '../components/BlockEditor';
 import { Select } from '../components/Select';
 import { ErrorBox, Skeleton, useUi } from '../components/ui';
-import { parseBlocks, previewOf, serializeBlocks, type Block } from '../lib/blocks';
+import { newBlock, parseBlocks, previewOf, serializeBlocks, type Block } from '../lib/blocks';
 import { ago } from '../lib/format';
 import { noteName, sortNotes, useNotes, useNotesApi, type NoteOwner, type NotePatch } from '../lib/notes';
 import { usePrefs } from '../lib/prefs';
@@ -240,6 +241,24 @@ function NoteEditor({ note, folders, api, onDelete, onBack }: EditorProps) {
     if (!note.title && !note.body) titleRef.current?.focus();
   }, [note.id, note.title, note.body]);
 
+  /**
+   * 편집기에서 올린 파일(붙여넣기·끌어 놓기·/그림): 첨부에 붙이고, 그림이면 편집기가 본문에 그림 블록을 넣는다
+   * @param file 올릴 파일
+   */
+  const upload = async (file: File): Promise<UploadedFile | null> => {
+    if (!uploadable([file], ui.toast).length) return null;
+    try {
+      const f = await api.uploadFile(note.id, file);
+      if (f.kind !== 'image') ui.toast(`"${f.name}"을 아래 첨부에 넣었어요`);
+      return { url: f.url, name: f.name, image: f.kind === 'image' };
+    } catch (e) {
+      ui.fail(e);
+      return null;
+    }
+  };
+  /** 본문에 그림 블록으로 들어간 첨부 주소들 */
+  const inBody = new Set(blocks.filter((b) => b.type === 'image' && b.src).map((b) => b.src));
+
   const togglePin = useAction(async () => {
     await api.update(note.id, { pinned: !note.pinned });
     ui.toast(note.pinned ? '고정을 풀었어요' : '목록 맨 위에 고정했어요');
@@ -340,8 +359,39 @@ function NoteEditor({ note, folders, api, onDelete, onBack }: EditorProps) {
             setBlocks(next);
             touch();
           }}
+          onUpload={upload}
         />
-        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>"/" 블록 종류 · Enter 새 블록 · Shift+Enter 줄바꿈 · Cmd+Shift+↑↓ 블록 옮기기 · Cmd+S 바로 저장</span>
+        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>"/" 블록 종류 · Enter 새 블록 · Shift+Enter 줄바꿈 · Cmd+Shift+↑↓ 블록 옮기기 · 그림은 붙여넣기·끌어 놓기 · Cmd+S 바로 저장</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 24px 20px', borderTop: '1px solid var(--line-soft)' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>첨부</h3>
+          <span className="mono" style={{ fontSize: 12, color: 'var(--text-3)' }}>
+            {note.files.length}
+          </span>
+        </div>
+        <AttachmentList
+          files={note.files}
+          onUpload={(f) => api.uploadFile(note.id, f)}
+          onDelete={async (f) => {
+            await api.deleteFile(f.id);
+            // 본문에 들어간 그림이면 그 블록도 뺀다 (깨진 그림이 남지 않게)
+            if (!inBody.has(f.url)) return;
+            setBlocks((cur) => {
+              const left = cur.filter((b) => !(b.type === 'image' && b.src === f.url));
+              return left.length ? left : [newBlock('p')];
+            });
+            touch();
+          }}
+          badge={(f) =>
+            inBody.has(f.url) ? (
+              <span title="본문에 그림으로 들어가 있어요" style={{ flex: 'none', padding: '1px 6px', borderRadius: 6, background: 'var(--accent-bg)', color: 'var(--accent-ink)', fontSize: 11, fontWeight: 600 }}>
+                본문
+              </span>
+            ) : null
+          }
+          help="그림은 본문에 붙여 넣거나 끌어 놓으면 그 자리에 들어가요 · PDF·md·텍스트·그림은 눌러서 바로 봐요 · 한 파일 20MB까지 · Hub 폴더(~/.hub/files)에 저장돼요"
+        />
       </div>
     </section>
   );

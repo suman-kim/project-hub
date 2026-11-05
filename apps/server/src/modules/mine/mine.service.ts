@@ -40,7 +40,7 @@ export function toTodoDto(t: MyTodo): MyTodoDto {
 
 /**
  * @param d 문서
- * @param files 그 문서의 첨부 목록 (DocFilesService.byDoc)
+ * @param files 그 문서의 첨부 목록 (DocFilesService.byOwner)
  */
 export function toDocDto(d: MyDoc, files: MyDocFileDto[] = []): MyDocDto {
   return {
@@ -100,7 +100,7 @@ export class MineService {
 
   /** 할 일과 보관함 문서 전부(공통 + 앱 전용). 화면이 appId로 나눠 보여 준다(오늘 화면의 만료 알림은 둘 다 쓴다) */
   async all(): Promise<MineDto> {
-    const [todos, docs, files] = await Promise.all([this.todos.find({ order: { id: 'ASC' } }), this.docs.find({ order: { id: 'ASC' } }), this.files.byDoc()]);
+    const [todos, docs, files] = await Promise.all([this.todos.find({ order: { id: 'ASC' } }), this.docs.find({ order: { id: 'ASC' } }), this.files.byOwner()]);
     return { todos: todos.map(toTodoDto), docs: docs.map((d) => toDocDto(d, files.get(d.id))) };
   }
 
@@ -119,7 +119,7 @@ export class MineService {
   }
 
   private async withFiles(d: MyDoc): Promise<MyDocDto> {
-    return toDocDto(d, (await this.files.byDoc([d.id])).get(d.id));
+    return toDocDto(d, (await this.files.byOwner([d.id])).get(d.id));
   }
 
   private async doc(id: number): Promise<MyDoc> {

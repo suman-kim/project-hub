@@ -4,7 +4,7 @@ import { matchAppByPath } from './modules/apps/apps.service';
 import { currentMonth, summarizeCosts } from './modules/costs/costs.service';
 import { buildContext, ContextInput } from './modules/context/build-context';
 import { parseFrontmatter, parseMcpList } from './modules/environment/parse';
-import { cleanFileName, contentDisposition, contentTypeOf, fileKindOf } from './modules/mine/doc-files';
+import { cleanFileName, contentDisposition, contentTypeOf, fileKindOf } from './common/stored-files';
 import { SecretBox } from './modules/mine/secret-box';
 import { renderSpecFile, specFileName } from './modules/knowledge/spec-file';
 import { BRIEF_MAX, renderTaskBrief } from './modules/knowledge/task-brief';

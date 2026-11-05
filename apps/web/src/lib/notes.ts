@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AppNoteDto } from '@hub/shared';
-import { api } from '../api/client';
+import type { AppNoteDto, NoteUploadDto } from '@hub/shared';
+import { api, qs } from '../api/client';
 
 /**
  * 노트가 어디에 속하는지: 앱 id(앱 페이지 노트 탭) 또는 null(내 업무 공통 노트).
@@ -32,7 +32,14 @@ export function useNotes(owner: NoteOwner) {
 export function useNotesApi(owner: NoteOwner) {
   const qc = useQueryClient();
   const key = notesKey(owner);
-  const put = (n: AppNoteDto) => qc.setQueryData<AppNoteDto[]>(key, (list) => (list ? (list.some((x) => x.id === n.id) ? list.map((x) => (x.id === n.id ? n : x)) : [n, ...list]) : [n]));
+  // 늦게 도착한 옛 응답이 새 값을 덮지 않게 한다(자동 저장과 파일 올리기가 겹칠 때: 올리기도 수정 시각을 올린다)
+  const put = (n: AppNoteDto) =>
+    qc.setQueryData<AppNoteDto[]>(key, (list) => {
+      if (!list) return [n];
+      const old = list.find((x) => x.id === n.id);
+      if (!old) return [n, ...list];
+      return old.updatedAt > n.updatedAt ? list : list.map((x) => (x.id === n.id ? n : x));
+    });
   return {
     /** 새 노트. 값을 비우면 빈 노트가 생긴다 */
     create: async (patch: NotePatch = {}) => {
@@ -45,6 +52,18 @@ export function useNotesApi(owner: NoteOwner) {
       put(n);
       return n;
     },
+    /**
+     * 파일 하나 붙이기. 첨부 목록이 담긴 노트로 캐시를 고치고, 방금 올린 파일을 돌려준다(그림 블록 주소)
+     * @param noteId 노트 id
+     * @param file 올릴 파일
+     */
+    uploadFile: async (noteId: number, file: File) => {
+      const r = await api.upload<NoteUploadDto>(`/api/notes/${noteId}/files${qs({ name: file.name })}`, file);
+      put(r.note);
+      return r.file;
+    },
+    /** 첨부 하나 지우기. 본문의 그림 블록은 남고 "불러오지 못했어요"로 보인다 */
+    deleteFile: async (fileId: number) => put(await api.del<AppNoteDto>(`/api/notes/files/${fileId}`)),
     remove: async (id: number) => {
       await api.del(`/api/notes/${id}`);
       qc.setQueryData<AppNoteDto[]>(key, (list) => list?.filter((x) => x.id !== id));

@@ -521,6 +521,48 @@ describe('통합 관리 (X1) e2e', () => {
       expect((await http.get(`/api/apps/${ids.MR}/notes`).set(auth).expect(200)).body).toEqual([]);
     });
 
+    it('노트 첨부: 올리면 노트와 파일을 돌려주고, 그림은 화면 안에서 열리며, 노트를 지우면 파일도 지운다', async () => {
+      const filesDir = join(process.env.HUB_HOME!, 'files');
+      const onDisk = () => (existsSync(filesDir) ? readdirSync(filesDir).length : 0);
+      const before = onDisk();
+      const note = (await http.post(`/api/apps/${ids.SR}/notes`).set(auth).send({ title: '스크린샷 모음' }).expect(201)).body;
+      expect(note.files).toEqual([]);
+      const upload = (name: string, body: Buffer | string, id = note.id) => http.post(`/api/notes/${id}/files`).query({ name }).set(auth).set('Content-Type', 'application/octet-stream').send(Buffer.from(body));
+
+      const png = Buffer.from('89504e470d0a1a0a', 'hex');
+      const up = (await upload('화면.png', png).expect(201)).body;
+      expect(up.file).toMatchObject({ noteId: note.id, name: '화면.png', kind: 'image', size: png.length, url: `/api/notes/files/${up.file.id}` });
+      expect(up.note.files).toEqual([up.file]);
+      const zip = (await upload('로그.zip', 'PK..').expect(201)).body.file;
+
+      // 그림은 화면 안에서(그림 블록의 src), 볼 수 없는 파일은 내려받기
+      const img = await http.get(up.file.url).set(auth).expect(200);
+      expect(img.headers['content-type']).toBe('image/png');
+      expect(img.headers['content-disposition']).toMatch(/^inline; /);
+      expect(img.headers['content-security-policy']).toBe('sandbox');
+      expect((await http.get(zip.url).set(auth).expect(200)).headers['content-disposition']).toMatch(/^attachment; /);
+
+      // 목록·자동 저장 응답에도 첨부가 실려 온다
+      expect((await http.get(`/api/apps/${ids.SR}/notes`).set(auth).expect(200)).body.find((n: { id: number }) => n.id === note.id).files).toHaveLength(2);
+      expect((await http.patch(`/api/notes/${note.id}`).set(auth).send({ body: `![화면.png](${up.file.url})` }).expect(200)).body.files).toHaveLength(2);
+
+      // 거절: 빈 파일, 없는 노트, 20MB 넘는 파일
+      await upload('빈.txt', '').expect(400);
+      await upload('x.txt', 'x', 999999).expect(404);
+      await upload('큰.png', Buffer.alloc(20 * 1024 * 1024 + 1)).expect(413);
+      expect(onDisk()).toBe(before + 2);
+
+      // 하나 지우기: 첨부 목록이 담긴 노트를 돌려준다
+      expect((await http.delete(`/api/notes/files/${zip.id}`).set(auth).expect(200)).body.files.map((f: { id: number }) => f.id)).toEqual([up.file.id]);
+      await http.get(zip.url).set(auth).expect(404);
+      await http.delete(`/api/notes/files/${zip.id}`).set(auth).expect(404);
+
+      // 노트를 지우면 첨부 내용도 지운다
+      await http.delete(`/api/notes/${note.id}`).set(auth).expect(204);
+      await http.get(up.file.url).set(auth).expect(404);
+      expect(onDisk()).toBe(before);
+    });
+
     it('내 업무 공통 노트: 앱에 묶이지 않고, 앱 노트와 섞이지 않는다', async () => {
       expect((await http.get('/api/mine/notes').set(auth).expect(200)).body).toEqual([]);
       const n = (await http.post('/api/mine/notes').set(auth).send({ title: '공통 명령어', folder: ' 명령어 ' }).expect(201)).body;
