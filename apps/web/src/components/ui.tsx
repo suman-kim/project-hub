@@ -149,7 +149,10 @@ export function UiProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!confirmState) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close(false);
+      if (e.key !== 'Escape') return;
+      // 같은 Esc로 아래 창이나 task 패널까지 닫히지 않게 표시해 둔다
+      e.preventDefault();
+      close(false);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -201,7 +204,11 @@ export function UiProvider({ children }: { children: ReactNode }) {
 export function Dialog({ onClose, children, width = 520, label }: { onClose: () => void; children: ReactNode; width?: number; label: string }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      // 위에 확인 창이 떠 있으면 그 창이 Esc를 받는다
+      if (e.key !== 'Escape' || e.defaultPrevented || document.querySelector('[role=alertdialog]')) return;
+      // 같은 Esc로 뒤의 task 패널까지 닫히지 않게 표시해 둔다
+      e.preventDefault();
+      onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

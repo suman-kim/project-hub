@@ -8,7 +8,7 @@ import { DeploymentsService } from '../deployments/deployments.service';
 import { ReposService } from '../repos/repos.service';
 import { IdeasService } from '../ideas/ideas.service';
 import { KnowledgeService, toSpecDto } from '../knowledge/knowledge.service';
-import { TasksService, toTaskDto } from '../tasks/tasks.service';
+import { changedFields, TasksService, toTaskDto } from '../tasks/tasks.service';
 
 export interface HubMcpDeps {
   tasks: TasksService;
@@ -151,6 +151,43 @@ export function createHubMcpServer(deps: HubMcpDeps): McpServer {
         let t = await tasks.changeStatus(id, status, note, 'claude');
         if (pr_url || branch) t = await tasks.update(t.id, { ...(pr_url ? { prUrl: pr_url } : {}), ...(branch ? { branch } : {}) }, 'claude');
         return pr_url || branch ? { id: t.id, status: t.status, prUrl: t.prUrl, branch: t.branch } : { id: t.id, status: t.status };
+      }),
+  );
+
+  server.registerTool(
+    'update_task',
+    {
+      description:
+        'task 내용을 수정한다: 제목, 설명, 종류, 담당, 크기, 우선순위, 기한, 단계, 저장소, 태그, 선행 task. 보낸 항목만 바꾸고 상태는 그대로 둔다(상태는 update_task_status). 끝난 task도 수정할 수 있고, 수정한 항목은 히스토리에 남는다.',
+      inputSchema: {
+        id: z.string(),
+        title: z.string().trim().min(1).optional(),
+        description: z.string().nullable().optional().describe('markdown. null이면 비운다'),
+        type: z.enum(TASK_TYPES).optional(),
+        assignee: z.enum(TASK_ASSIGNEES).optional().describe('claude 또는 사용자가 직접 할 일이면 me'),
+        size: z.enum(TASK_SIZES).nullable().optional().describe('S: 반나절, M: 하루, L: 며칠'),
+        priority: z.number().int().min(1).max(3).nullable().optional().describe('1 높음, 2 보통, 3 낮음. null이면 비운다'),
+        due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional().describe('YYYY-MM-DD. null이면 비운다'),
+        stage: z.string().nullable().optional().describe('앱 단계 key. null이면 단계 없음'),
+        repo: z.string().optional().describe('저장소가 여러 개인 앱에서 저장소 이름'),
+        tag: z.string().nullable().optional(),
+        depends_on: z.array(z.string()).optional().describe('선행 task ID 전체 목록 (기존 목록을 이 목록으로 바꾼다)'),
+      },
+    },
+    ({ id, title, description, type, assignee, size, priority, due_date, stage, repo, tag, depends_on }) =>
+      run(async () => {
+        const before = await tasks.get(id);
+        const input = {
+          title, description, type, assignee, size, priority, stage, tag,
+          dueDate: due_date,
+          dependsOn: depends_on,
+          repoId: await repoIdOf(deps, before.app.code, repo),
+        };
+        const changed = changedFields(before, input);
+        if (Object.values(input).every((v) => v === undefined)) throw new BadRequestException('수정할 항목이 없다 (title, description 등을 하나 이상 보낸다)');
+        const t = await tasks.update(before.id, input, 'claude');
+        const { id: tid, title: tt, status, type: ty, assignee: as, size: sz, priority: pr, dueDate, stage: sg, repoId, tag: tg, dependsOn } = toTaskDto(t, t.app.code);
+        return { id: tid, title: tt, status, type: ty, assignee: as, size: sz, priority: pr, dueDate, stage: sg, repoId, tag: tg, dependsOn, changed };
       }),
   );
 

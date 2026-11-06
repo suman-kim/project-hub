@@ -45,7 +45,8 @@ export const updateTaskSchema = z.object({
   ...planningFields,
   status: taskStatusSchema.optional(),
   note: z.string().min(1).optional(),
-  title: z.string().min(1).optional(),
+  /** 앞뒤 공백은 떼고, 비면 거부한다 */
+  title: z.string().trim().min(1).optional(),
   description: z.string().nullable().optional(),
   size: z.enum(TASK_SIZES).nullable().optional(),
   tag: z.string().nullable().optional(),

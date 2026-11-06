@@ -490,12 +490,12 @@ describe('Hub e2e', () => {
     it('토큰 없이 /mcp는 401', () =>
       http.post('/mcp').send({ jsonrpc: '2.0', id: 1, method: 'tools/list' }).expect(401));
 
-    it('도구 12개', async () => {
+    it('도구 13개', async () => {
       const { tools } = await client.listTools();
       expect(tools.map((t) => t.name).sort()).toEqual(
         [
           'add_todo', 'create_tasks', 'get_spec', 'get_task', 'list_tasks', 'record_deploy', 'record_mistake', 'report_bug',
-          'save_spec', 'set_stage', 'submit_idea', 'update_task_status',
+          'save_spec', 'set_stage', 'submit_idea', 'update_task', 'update_task_status',
         ].sort(),
       );
     });

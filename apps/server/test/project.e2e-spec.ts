@@ -211,6 +211,43 @@ describe('통합 관리 (X1) e2e', () => {
       expect(note.body).toMatchObject({ kind: 'note', actor: 'me', appCode: 'SR' });
       expect((await activities('SR', 'note')).map((a) => a.summary)).toEqual(['스토어 서류 준비 시작']);
     });
+
+    it('task 수정: 바뀐 항목만 히스토리에 남기고, 끝난 task도 수정한다. 빈 제목과 선행 task 순환은 거부', async () => {
+      const a = (await http.post('/api/tasks').set(auth).send({ app: 'SR', title: '고칠 일', size: 'M' }).expect(201)).body;
+      const b = (await http.post('/api/tasks').set(auth).send({ app: 'SR', title: '다음 일', dependsOn: [a.id] }).expect(201)).body;
+      const c = (await http.post('/api/tasks').set(auth).send({ app: 'SR', title: '그다음 일', dependsOn: [b.id] }).expect(201)).body;
+
+      const r = await http.patch(`/api/tasks/${a.id}`).set(auth).send({ title: '  고친 제목  ', description: '## 기준', size: 'M', tag: 'ui', priority: 1 }).expect(200);
+      expect(r.body).toMatchObject({ title: '고친 제목', description: '## 기준', size: 'M', tag: 'ui', priority: 1, status: 'todo' });
+      const edits = await activities('SR', 'task.edit');
+      expect(edits[0]).toMatchObject({ actor: 'me', summary: `${a.id} 수정 (제목, 설명, 우선순위, 태그): 고친 제목` });
+
+      // 같은 값을 다시 보내면 기록하지 않는다
+      await http.patch(`/api/tasks/${a.id}`).set(auth).send({ title: '고친 제목', size: 'M', tag: 'ui' }).expect(200);
+      expect(await activities('SR', 'task.edit')).toHaveLength(edits.length);
+
+      await http.patch(`/api/tasks/${a.id}`).set(auth).send({ title: '   ' }).expect(400);
+      // a ← b ← c 인데 a가 c(또는 b)를 기다리게 하면 순환
+      const cyc = await http.patch(`/api/tasks/${a.id}`).set(auth).send({ dependsOn: [c.id.toLowerCase()] }).expect(400);
+      expect(cyc.body.error.message).toBe(`선행 task가 순환한다: ${b.id}는 이미 ${a.id}가 끝나기를 기다린다`);
+      // 끝난 task도 수정한다 (상태는 그대로)
+      const me = (await http.post('/api/tasks').set(auth).send({ app: 'SR', title: '끝낸 일', assignee: 'me' }).expect(201)).body;
+      await http.patch(`/api/tasks/${me.id}`).set(auth).send({ status: 'done' }).expect(200);
+      const fixed = await http.patch(`/api/tasks/${me.id}`).set(auth).send({ title: '끝낸 일 (오타 고침)', dueDate: '2026-12-01' }).expect(200);
+      expect(fixed.body).toMatchObject({ status: 'done', title: '끝낸 일 (오타 고침)', dueDate: '2026-12-01' });
+    });
+
+    it('MCP update_task: 내용만 수정하고 상태는 그대로, 바뀐 항목을 돌려주고 히스토리에 claude로 남긴다', async () => {
+      const t = (await http.post('/api/tasks').set(auth).send({ app: 'SR', title: 'MCP로 고칠 일', priority: 2 }).expect(201)).body;
+      const res = await call('update_task', { id: t.id.toLowerCase(), title: '새 제목', description: '- 기준', size: 'S', stage: 'develop', priority: null });
+      expect(res.isError).toBe(false);
+      expect(res.json).toMatchObject({ id: t.id, title: '새 제목', status: 'todo', size: 'S', stage: 'develop', priority: null, changed: ['제목', '설명', '크기', '우선순위', '단계'] });
+      expect((await activities('SR', 'task.edit'))[0]).toMatchObject({ actor: 'claude', summary: `${t.id} 수정 (제목, 설명, 크기, 우선순위, 단계): 새 제목` });
+
+      expect((await call('update_task', { id: t.id })).isError).toBe(true);
+      expect((await call('update_task', { id: t.id, repo: 'nope' })).text).toContain('저장소 nope');
+      expect((await call('update_task', { id: t.id, stage: 'nope' })).isError).toBe(true);
+    });
   });
 
   describe('앱 개요와 상태', () => {
