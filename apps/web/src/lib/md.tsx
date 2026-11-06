@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 /**
  * task 설명·명세·결과 요약·프로젝트 문서용 작은 markdown 렌더러 (디자인 시안의 md()를 옮긴 것).
- * 제목, 문단, 목록(체크박스), 코드 블록, 표, 인용, 구분선, 인라인 코드, 굵게, 링크만 다룬다. HTML 주석은 숨긴다.
+ * 제목, 문단, 목록(체크박스), 코드 블록, 표, 인용, 구분선, 인라인 코드, 굵게, 기울임, 취소선, 링크만 다룬다. HTML 주석은 숨긴다.
  * Task Master에서 온 설명은 형식이 고르지 않아서, 이상한 곳을 warn으로 알려 준다.
  */
 
@@ -75,10 +75,27 @@ export function parseMd(src: string | null | undefined): { blocks: Block[]; warn
   return { blocks: out, warn };
 }
 
-/** `코드`, **굵게**, [이름](주소), 맨 주소 */
+/**
+ * 인라인 표시. 묶음 번호: 1 `코드`, 2 **굵게**, 3 ~~취소선~~, 4 *기울임*, 5 _기울임_, 6·7 [이름](주소), 8 맨 주소.
+ * *기울임*은 앞뒤 공백만 보고 글자에 붙어 있어도 된다("*조심*해야"처럼 조사가 붙는 한국어). 2 * 3 * 4는 공백 때문에 그대로.
+ * _기울임_은 글자·숫자에 붙어 있으면 건너뛴다(snake_case, __init__, 변수_이름_이 기울임이 되지 않게).
+ */
+const INLINE =
+  /`([^`]+)`|\*\*([^*]+)\*\*|~~(?!\s)([^~]+?)(?<!\s)~~|(?<![*\\])\*(?![\s*])([^*\n]+?)(?<![\s*\\])\*(?!\*)|(?<![\p{L}\p{N}_])_(?![\s_])([^_\n]+?)(?<![\s_])_(?![\p{L}\p{N}_])|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s)]+)/gu;
+
+/**
+ * 글자 모양이 바뀌는 표시(코드·굵게·취소선·기울임·링크)가 있는지. 있으면 화면 글자와 원문 글자 위치가 달라진다(맨 주소는 그대로)
+ * @param text 한 블록의 글
+ */
+export function hasInlineMarks(text: string): boolean {
+  for (const m of text.matchAll(INLINE)) if (m[8] === undefined) return true;
+  return false;
+}
+
+/** `코드`, **굵게**, ~~취소선~~, *기울임*, [이름](주소), 맨 주소 */
 export function inline(text: string): ReactNode[] {
   const parts: ReactNode[] = [];
-  const re = /`([^`]+)`|\*\*([^*]+)\*\*|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s)]+)/g;
+  const re = new RegExp(INLINE);
   let last = 0;
   let m: RegExpExecArray | null;
   let k = 0;
@@ -91,22 +108,52 @@ export function inline(text: string): ReactNode[] {
         </code>,
       );
     else if (m[2] !== undefined) parts.push(<strong key={k++}>{m[2]}</strong>);
-    else if (m[3] !== undefined)
+    else if (m[3] !== undefined) parts.push(<del key={k++}>{m[3]}</del>);
+    else if (m[4] !== undefined || m[5] !== undefined) parts.push(<em key={k++}>{m[4] ?? m[5]}</em>);
+    else if (m[6] !== undefined)
       parts.push(
-        <a key={k++} href={m[4]} target="_blank" rel="noreferrer">
-          {m[3]}
+        <a key={k++} href={m[7]} target="_blank" rel="noreferrer">
+          {m[6]}
         </a>,
       );
     else
       parts.push(
-        <a key={k++} href={m[5]} target="_blank" rel="noreferrer" style={{ wordBreak: 'break-all' }}>
-          {m[5]}
+        <a key={k++} href={m[8]} target="_blank" rel="noreferrer" style={{ wordBreak: 'break-all' }}>
+          {m[8]}
         </a>,
       );
     last = m.index + m[0].length;
   }
   if (last < text.length) parts.push(text.slice(last));
   return parts;
+}
+
+/**
+ * 표. 첫 줄이 머리 줄이고, 넓으면 가로로 밀어 본다. 프로젝트 문서와 노트 표 블록이 함께 쓴다
+ * @param rows 칸 글 (구분 줄은 뺀 것)
+ * @param size 글자 크기 (표는 이보다 1 작게)
+ */
+export function MdTable({ rows, size }: { rows: string[][]; size: number }) {
+  return (
+    <div style={{ overflowX: 'auto', minWidth: 0 }}>
+      <table style={{ borderCollapse: 'collapse', fontSize: size - 1, lineHeight: 1.6 }}>
+        <tbody>
+          {rows.map((row, r) => (
+            <tr key={r}>
+              {row.map((c, k) => {
+                const Cell = r === 0 ? 'th' : 'td';
+                return (
+                  <Cell key={k} style={{ padding: '6px 10px', border: '1px solid var(--line)', textAlign: 'left', verticalAlign: 'top', fontWeight: r === 0 ? 600 : 400, background: r === 0 ? 'var(--sunken)' : undefined }}>
+                    {inline(c)}
+                  </Cell>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 /** 문서 보기(doc)에서 제목 단계별 글자 크기 차이 */
@@ -134,26 +181,7 @@ export function Markdown({ src, size = 14, compact, doc }: { src: string | null 
               </div>
             );
           case 'table':
-            return (
-              <div key={i} style={{ overflowX: 'auto', minWidth: 0 }}>
-                <table style={{ borderCollapse: 'collapse', fontSize: size - 1, lineHeight: 1.6 }}>
-                  <tbody>
-                    {b.rows.map((row, r) => (
-                      <tr key={r}>
-                        {row.map((c, k) => {
-                          const Cell = r === 0 ? 'th' : 'td';
-                          return (
-                            <Cell key={k} style={{ padding: '6px 10px', border: '1px solid var(--line)', textAlign: 'left', verticalAlign: 'top', fontWeight: r === 0 ? 600 : 400, background: r === 0 ? 'var(--sunken)' : undefined }}>
-                              {inline(c)}
-                            </Cell>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            );
+            return <MdTable key={i} rows={b.rows} size={size} />;
           case 'p':
             return (
               <p key={i} style={{ margin: 0, lineHeight: 1.7, overflowWrap: 'anywhere' }}>
@@ -184,5 +212,5 @@ export function Markdown({ src, size = 14, compact, doc }: { src: string | null 
 /** 목록에서 보여 줄 첫 줄 */
 export function firstLine(src: string | null | undefined): string {
   const b = parseMd(src).blocks.find((x) => x.type === 'p' || x.type === 'li' || x.type === 'h');
-  return b && 'text' in b ? b.text.replace(/[`*]/g, '') : '';
+  return b && 'text' in b ? b.text.replace(/[`*~]/g, '') : '';
 }

@@ -361,7 +361,7 @@ function NoteEditor({ note, folders, api, onDelete, onBack }: EditorProps) {
           }}
           onUpload={upload}
         />
-        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>"/" 블록 종류 · Enter 새 블록 · Shift+Enter 줄바꿈 · Cmd+Shift+↑↓ 블록 옮기기 · 그림은 붙여넣기·끌어 놓기 · Cmd+S 바로 저장</span>
+        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>"/" 블록 종류 · Enter 새 블록 · Shift+Enter 줄바꿈 · Cmd+Shift+↑↓ 블록 옮기기 · markdown 글은 붙여 넣으면 서식으로(바로 Cmd+Z면 글자 그대로) · 그림은 붙여넣기·끌어 놓기 · Cmd+S 바로 저장</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 24px 20px', borderTop: '1px solid var(--line-soft)' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>

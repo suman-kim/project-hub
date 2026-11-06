@@ -1,8 +1,8 @@
-import { useLayoutEffect, useRef, useState, type ClipboardEvent, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent } from 'react';
-import { BLOCK_MENU, imageBlock, LIST_TYPES, newBlock, shortcutOf, type Block, type BlockType } from '../lib/blocks';
-import { inline } from '../lib/md';
+import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent } from 'react';
+import { BLOCK_MENU, imageBlock, LIST_TYPES, newBlock, pasteMarkdown, RAW_TYPES, shortcutOf, TABLE_TEMPLATE, tableRows, type Block, type BlockType } from '../lib/blocks';
+import { hasInlineMarks, inline, MdTable } from '../lib/md';
 import { IconCopy } from './icons';
-import { useCopy } from './ui';
+import { useCopy, useUi } from './ui';
 
 /**
  * 노션처럼 블록 단위로 글을 쓰는 편집기. 외부 라이브러리 없이 textarea 여러 개로 만든다.
@@ -10,11 +10,13 @@ import { useCopy } from './ui';
  * - Backspace (맨 앞): 종류를 문단으로 → 앞 블록과 합치기
  * - ↑↓: 블록 사이 이동 · Cmd+Shift+↑↓: 블록 옮기기
  * - "/": 블록 종류 메뉴 · "# ", "- ", "1. ", "[] ", "> ", "```", "---": 단축 입력
- * - 코드 블록: Enter는 줄바꿈, Cmd+Enter로 나가기, 복사 버튼
+ * - 코드·표 블록: Enter는 줄바꿈, Cmd+Enter로 나가기. 표는 markdown 표 줄로 고치고, 나가면 표로 보인다
  * - 그림: 붙여넣기·끌어 놓기·"/그림"으로 올리면 그 자리에 그림 블록이 생긴다 (onUpload가 있을 때만)
- * 고치지 않는 블록은 굵게·코드·링크를 렌더링해 보여 주고, 누르면 그 자리에서 고친다.
+ * - markdown 글 붙여넣기: 제목·목록·코드·인용·표를 블록으로 나눠 넣는다. 바로 Cmd+Z나 알림의 되돌리기를 누르면 글자 그대로 바뀐다
+ * 고치지 않는 블록은 굵게·기울임·취소선·코드·링크를 렌더링해 보여 주고, 누르면 그 자리에서 고친다.
  */
 export function BlockEditor({ blocks, onChange, autoFocus, onUpload }: EditorProps) {
+  const ui = useUi();
   const root = useRef<HTMLDivElement>(null);
   /** 올리기가 끝났을 때 그 사이 바뀐 블록에 그림을 넣도록 늘 최신 값을 둔다 */
   const latest = useRef({ blocks, onChange });
@@ -26,6 +28,15 @@ export function BlockEditor({ blocks, onChange, autoFocus, onUpload }: EditorPro
   const [uploading, setUploading] = useState(0);
   /** 파일을 끌어 편집기 위에 올려 둔 동안 */
   const [dropping, setDropping] = useState(false);
+  /** 방금 서식으로 붙인 결과와, 글자 그대로 붙였을 때의 블록 목록. 그 사이 다른 고침이 없을 때만 되돌린다 */
+  const lastPaste = useRef<{ after: Block[]; raw: Block[]; focus: { id: string; pos: number } } | null>(null);
+  // 다른 노트로 옮겨 편집기가 닫히면 알림의 되돌리기가 그 노트를 건드리지 않게 한다
+  useEffect(
+    () => () => {
+      lastPaste.current = null;
+    },
+    [],
+  );
   /** 지금 고치는 중인 블록 (그 블록만 textarea로 그린다) */
   const [active, setActive] = useState<string | null>(autoFocus ? blocks[0]?.id ?? null : null);
   /** 다음 그리기 뒤에 커서를 둘 곳 */
@@ -71,8 +82,14 @@ export function BlockEditor({ blocks, onChange, autoFocus, onUpload }: EditorPro
     const el = root.current?.querySelector<HTMLTextAreaElement>(`[data-block-id="${blocks[i].id}"]`);
     setWant({ id: blocks[i].id, pos: el?.selectionStart ?? 0 });
   };
-  /** 블록 종류를 바꾼다. 구분선은 글이 없으니 뒤에 문단을 하나 둔다 */
-  const setType = (i: number, type: BlockType, text = '') => {
+  /**
+   * 블록 종류를 바꾼다. 구분선은 글이 없으니 뒤에 문단을 하나 둔다
+   * @param i 블록 순번
+   * @param type 바꿀 종류
+   * @param text 바꾼 뒤 글
+   * @param pos 커서 위치 (없으면 글 끝)
+   */
+  const setType = (i: number, type: BlockType, text = '', pos = text.length) => {
     const b = blocks[i];
     if (type === 'hr') {
       const p = newBlock('p');
@@ -81,7 +98,7 @@ export function BlockEditor({ blocks, onChange, autoFocus, onUpload }: EditorPro
       return;
     }
     replace(i, { id: b.id, type, text, ...(type === 'todo' ? { checked: false } : {}) });
-    focusBlock(b.id, text.length);
+    focusBlock(b.id, pos);
   };
 
   /**
@@ -122,18 +139,57 @@ export function BlockEditor({ blocks, onChange, autoFocus, onUpload }: EditorPro
       fileInput.current?.click();
       return;
     }
+    // 새 표는 마지막 빈 줄의 첫 칸("| " 바로 뒤)에서 쓰기 시작한다
+    if (type === 'table') {
+      setType(i, 'table', TABLE_TEMPLATE, TABLE_TEMPLATE.lastIndexOf('\n') + 3);
+      return;
+    }
     setType(i, type);
   };
 
   /**
-   * 붙여넣기: 파일만 있으면(스크린샷, 복사한 그림) 올린다. 글이 함께 있으면(표 복사 등) 글로 붙인다.
+   * 붙여넣기: 파일만 있으면(스크린샷, 복사한 그림) 올린다. 글이면 markdown을 블록으로 나눠 넣고(pasteMarkdown),
+   * 나눌 것이 없으면 브라우저가 글자 그대로 붙이게 둔다.
+   * @param i 붙여 넣은 블록 순번
    * @param b 붙여 넣은 블록
    */
-  const onPaste = (b: Block, e: ClipboardEvent<HTMLTextAreaElement>) => {
+  const onPaste = (i: number, b: Block, e: ClipboardEvent<HTMLTextAreaElement>) => {
     const files = [...e.clipboardData.files];
-    if (!onUpload || !files.length || e.clipboardData.types.includes('text/plain')) return;
+    const hasText = e.clipboardData.types.includes('text/plain');
+    if (onUpload && files.length && !hasText) {
+      e.preventDefault();
+      void addFiles(files, b.id);
+      return;
+    }
+    if (!hasText) return;
+    const text = e.clipboardData.getData('text/plain');
+    const { selectionStart: s, selectionEnd: en } = e.currentTarget;
+    const r = pasteMarkdown(blocks, i, s, en, text);
+    if (!r) return;
     e.preventDefault();
-    void addFiles(files, b.id);
+    setMenu(null);
+    // 되돌리기: 그 블록에 글자 그대로 붙인 모양
+    const rawText = b.text.slice(0, s) + text + b.text.slice(en);
+    const raw = blocks.map((x) => (x.id === b.id ? { ...x, text: rawText } : x));
+    lastPaste.current = { after: r.blocks, raw, focus: { id: b.id, pos: s + text.length } };
+    onChange(r.blocks);
+    focusBlock(r.focus.id, r.focus.pos);
+    ui.toast(`markdown 서식으로 붙였어요 (블록 ${r.blocks.length - blocks.length + 1}개) · 되돌리면 글자 그대로 들어가요`, { undo: () => void undoPaste() });
+  };
+  /** 서식으로 붙인 것을 글자 그대로로 되돌린다. 그 뒤에 고친 글이 있으면 덮어쓰지 않는다 */
+  const undoPaste = (): boolean => {
+    const last = lastPaste.current;
+    lastPaste.current = null;
+    if (!last) return false;
+    if (latest.current.blocks !== last.after) {
+      ui.toast('붙인 뒤에 고친 글이 있어서 되돌리지 않았어요');
+      return false;
+    }
+    latest.current.onChange(last.raw);
+    focusBlock(last.focus.id, last.focus.pos);
+    // 앞 알림(되돌리기 버튼)을 이 알림으로 바꾼다
+    ui.toast('글자 그대로 붙였어요');
+    return true;
   };
   const hasFiles = (e: DragEvent) => !!onUpload && e.dataTransfer.types.includes('Files');
 
@@ -161,14 +217,20 @@ export function BlockEditor({ blocks, onChange, autoFocus, onUpload }: EditorPro
       }
     }
 
+    // 서식으로 붙인 바로 뒤 Cmd+Z: 글자 그대로 붙인 모양으로 (한글 입력 중에도 되게 key 대신 code로 본다)
+    if (mod && !e.shiftKey && e.code === 'KeyZ' && lastPaste.current?.after === blocks) {
+      e.preventDefault();
+      undoPaste();
+      return;
+    }
     if (mod && e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
       e.preventDefault();
       move(i, e.key === 'ArrowUp' ? -1 : 1);
       return;
     }
     if (e.key === 'Enter') {
-      if (b.type === 'code') {
-        if (!mod) return; // 코드 안에서는 줄바꿈
+      if (RAW_TYPES.has(b.type)) {
+        if (!mod) return; // 코드·표 안에서는 줄바꿈
         e.preventDefault();
         insertAfter(i, newBlock('p'));
         return;
@@ -244,7 +306,7 @@ export function BlockEditor({ blocks, onChange, autoFocus, onUpload }: EditorPro
         return;
       }
     }
-    if (b.type !== 'code') {
+    if (!RAW_TYPES.has(b.type)) {
       const m = text.match(/^\/([^\s/]*)$/);
       if (m) setMenu({ id: b.id, q: m[1], sel: 0 });
       else if (menu?.id === b.id) setMenu(null);
@@ -295,7 +357,7 @@ export function BlockEditor({ blocks, onChange, autoFocus, onUpload }: EditorPro
           onInput={(el) => onInput(i, b, el)}
           onKey={(e) => onKey(i, b, e)}
           onToggle={() => replace(i, { ...b, checked: !b.checked })}
-          onPaste={(e) => onPaste(b, e)}
+          onPaste={(e) => onPaste(i, b, e)}
           onHrKey={(e) => {
             if (e.key === 'Backspace' || e.key === 'Delete') {
               e.preventDefault();
@@ -385,6 +447,7 @@ const TYPE_STYLE: Record<BlockType, CSSProperties> = {
   quote: { fontSize: 15, lineHeight: 1.7, color: 'var(--text-2)' },
   hr: {},
   image: {},
+  table: { fontSize: 14, lineHeight: 1.6 },
 };
 
 interface RowProps {
@@ -440,12 +503,14 @@ function BlockRow({ b, num, editing, onlyOne, onFocus, onBlur, onClickText, onIn
     );
 
   const isCode = b.type === 'code';
+  const isTable = b.type === 'table';
+  const isRaw = isCode || isTable;
   const style = TYPE_STYLE[b.type];
-  const placeholder = isCode ? '명령어나 코드를 붙여 넣으세요' : b.type === 'p' ? (onlyOne || editing ? '글을 쓰거나 /를 눌러 블록 종류를 고르세요' : '') : b.type.startsWith('h') ? '제목' : b.type === 'quote' ? '인용' : '';
+  const placeholder = isCode ? '명령어나 코드를 붙여 넣으세요' : isTable ? '| 항목 | 내용 |' : b.type === 'p' ? (onlyOne || editing ? '글을 쓰거나 /를 눌러 블록 종류를 고르세요' : '') : b.type.startsWith('h') ? '제목' : b.type === 'quote' ? '인용' : '';
 
-  /** 렌더링된 글을 누른 자리 → 글자 위치. 굵게·코드 표시가 섞여 있으면 끝으로 */
+  /** 렌더링된 글을 누른 자리 → 글자 위치. 굵게·코드 같은 표시가 섞여 있거나 표면 끝으로 */
   const clickPos = (e: MouseEvent<HTMLDivElement>) => {
-    if (/[`*[]/.test(b.text)) return b.text.length;
+    if (isTable || hasInlineMarks(b.text)) return b.text.length;
     const doc = document as Document & { caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null };
     let node: Node | null = null;
     let off = 0;
@@ -478,7 +543,7 @@ function BlockRow({ b, num, editing, onlyOne, onFocus, onBlur, onClickText, onIn
       onBlur={onBlur}
       aria-label={BLOCK_MENU.find((m) => m.type === b.type)?.label}
       className="block-input"
-      style={{ ...style, display: 'block', width: '100%', margin: 0, padding: 0, border: 0, outline: 'none', background: 'transparent', color: 'inherit', resize: 'none', overflow: 'hidden', fontFamily: isCode ? 'var(--mono)' : 'inherit' }}
+      style={{ ...style, ...(isTable ? { fontSize: 13 } : {}), display: 'block', width: '100%', margin: 0, padding: 0, border: 0, outline: 'none', background: 'transparent', color: 'inherit', resize: 'none', overflow: 'hidden', fontFamily: isRaw ? 'var(--mono)' : 'inherit' }}
     />
   ) : (
     <div
@@ -490,11 +555,33 @@ function BlockRow({ b, num, editing, onlyOne, onFocus, onBlur, onClickText, onIn
         onClickText(clickPos(e));
       }}
       className="block-text"
-      style={{ ...style, minHeight: `${(style.fontSize as number) * (style.lineHeight as number)}px`, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', cursor: 'text', outline: 'none', color: b.type === 'todo' && b.checked ? 'var(--text-3)' : style.color, textDecoration: b.type === 'todo' && b.checked ? 'line-through' : undefined }}
+      style={{ ...style, minHeight: `${(style.fontSize as number) * (style.lineHeight as number)}px`, whiteSpace: isTable ? 'normal' : 'pre-wrap', overflowWrap: 'anywhere', cursor: 'text', outline: 'none', color: b.type === 'todo' && b.checked ? 'var(--text-3)' : style.color, textDecoration: b.type === 'todo' && b.checked ? 'line-through' : undefined }}
     >
-      {b.text ? (isCode ? b.text : b.text.split('\n').map((l, k) => <span key={k}>{k ? <br /> : null}{inline(l)}</span>)) : <span style={{ color: 'var(--text-3)' }}>{placeholder}</span>}
+      {!b.text.trim() ? (
+        <span style={{ color: 'var(--text-3)' }}>{placeholder}</span>
+      ) : isTable ? (
+        <MdTable rows={tableRows(b.text)} size={15} />
+      ) : isCode ? (
+        b.text
+      ) : (
+        b.text.split('\n').map((l, k) => (
+          <span key={k}>
+            {k ? <br /> : null}
+            {inline(l)}
+          </span>
+        ))
+      )}
     </div>
   );
+
+  // 표: 보기는 표, 고칠 때는 markdown 표 줄
+  if (isTable)
+    return (
+      <div className="block-row" style={{ position: 'relative', margin: '6px 0', ...(editing ? { padding: '10px 12px 22px', borderRadius: 8, background: 'var(--chip)' } : {}) }}>
+        {content}
+        {editing && <span style={{ position: 'absolute', right: 10, bottom: 4, fontSize: 11, color: 'var(--text-3)' }}>칸은 | 로 나눠요 · Enter 새 줄 · Cmd+Enter로 나가기</span>}
+      </div>
+    );
 
   if (isCode)
     return (
