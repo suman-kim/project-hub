@@ -24,7 +24,10 @@ export function useMine() {
   return useQuery({ queryKey: ['mine'], queryFn: () => api.get<MineDto>('/api/mine') });
 }
 
-/** 내 업무 바꾸기. 응답으로 캐시를 바로 고쳐서 자동 저장해도 화면이 튀지 않게 한다 */
+/**
+ * 내 업무 바꾸기. 응답으로 캐시를 바로 고쳐서 자동 저장해도 화면이 튀지 않게 한다.
+ * 보관함 문서는 공통·앱 전용이 모두 ['mine'] 캐시 하나에 있어서, 앱 페이지 보관함도 같은 함수를 쓴다.
+ */
 export function useMineApi() {
   const qc = useQueryClient();
   const putTodo = (t: MyTodoDto) => qc.setQueryData<MineDto>(['mine'], (m) => m && { ...m, todos: m.todos.some((x) => x.id === t.id) ? m.todos.map((x) => (x.id === t.id ? t : x)) : [...m.todos, t] });
@@ -46,8 +49,14 @@ export function useMineApi() {
       await api.del(`/api/mine/todos/${id}`);
       await refresh();
     },
-    addDoc: async (kind: MyDocKind, title: string) => {
-      const d = await api.post<MyDocDto>('/api/mine/docs', { kind, title });
+    /**
+     * 보관함 문서 만들기
+     * @param kind 종류
+     * @param title 제목
+     * @param appId 앱 전용이면 그 앱 id, 모든 앱 공통이면 null
+     */
+    addDoc: async (kind: MyDocKind, title: string, appId: number | null = null) => {
+      const d = await api.post<MyDocDto>('/api/mine/docs', { kind, title, appId });
       putDoc(d);
       return d;
     },

@@ -13,13 +13,14 @@ import { readPref, writePref } from '../lib/prefs';
 import { tildify } from '../lib/paths';
 import { DocsTab } from './AppDocs';
 import { NotesTab } from './AppNotes';
+import { VaultPanel } from './Mine';
 import { SessionsTab } from './AppSessions';
 import { AppSettings } from './AppSettings';
 import { IdeasTab } from './AppTabs';
 import { Board } from './Board';
 import { HistoryTab, StageTab } from './AppStageHistory';
 
-export type AppTab = 'overview' | 'board' | 'sessions' | 'stage' | 'history' | 'ideas' | 'notes' | 'docs' | 'design' | 'settings';
+export type AppTab = 'overview' | 'board' | 'sessions' | 'stage' | 'history' | 'ideas' | 'notes' | 'docs' | 'design' | 'vault' | 'settings';
 
 const TABS: Array<[AppTab, string]> = [
   ['overview', '개요'],
@@ -31,6 +32,7 @@ const TABS: Array<[AppTab, string]> = [
   ['notes', '노트'],
   ['docs', '문서'],
   ['design', '디자인'],
+  ['vault', '보관함'],
   ['settings', '설정'],
 ];
 
@@ -104,9 +106,10 @@ export function AppPage() {
       {tab === 'stage' && <StageTab app={a} ov={ov} />}
       {tab === 'history' && <HistoryTab app={a} />}
       {tab === 'ideas' && <IdeasTab app={a} />}
-      {tab === 'notes' && <NotesTab app={a} />}
+      {tab === 'notes' && <NotesTab owner={a.id} />}
       {tab === 'docs' && <DocsTab key="docs" app={a} dir="docs" />}
       {tab === 'design' && <DocsTab key="design" app={a} dir="design" />}
+      {tab === 'vault' && <VaultPanel appId={a.id} />}
     </div>
   );
 }

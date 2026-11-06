@@ -466,18 +466,25 @@ function MineOverdueRow({ t }: { t: MyTodoDto }) {
   );
 }
 
-/** 14일 안에 만료·갱신·결제되는 내 업무 문서 */
+/** 14일 안에 만료·갱신·결제되는 보관함 문서. 공통 문서는 내 업무 보관함으로, 앱 전용 문서는 그 앱 페이지 보관함으로 연다 */
 function MineAlerts() {
   const navigate = useNavigate();
   const inbox = useInbox();
+  const apps = useApps();
+  const codeOf = new Map((apps.data ?? []).map((a) => [a.id, a.code]));
+  /** 문서 서랍 주소. 앱 코드를 아직 모르면 내 업무 보관함으로 */
+  const docUrl = (appId: number | null, id: number) => {
+    const code = appId === null ? null : codeOf.get(appId);
+    return code ? `/apps/${code}/vault?doc=${id}` : `/mine?tab=vault&doc=${id}`;
+  };
   return (
     <section className="card" style={{ borderColor: 'var(--attn-line)' }}>
       <div className="card-head">
         <span aria-hidden="true" className="dot" style={{ background: 'var(--attn-dot)' }} />
         <h2>만료·갱신 예정</h2>
-        <span className="card-sub">내 업무 문서 · 14일 안</span>
-        <button type="button" className="link" style={{ marginLeft: 'auto', fontSize: 13 }} onClick={() => navigate('/mine?tab=docs')}>
-          문서 모두 보기
+        <span className="card-sub">보관함 · 14일 안</span>
+        <button type="button" className="link" style={{ marginLeft: 'auto', fontSize: 13 }} onClick={() => navigate('/mine?tab=vault')}>
+          보관함 보기
         </button>
       </div>
       {inbox.mineAlerts.map((d) => {
@@ -487,9 +494,10 @@ function MineAlerts() {
             key={d.id}
             type="button"
             className="row-btn"
-            onClick={() => navigate(`/mine?tab=docs&doc=${d.id}`)}
+            onClick={() => navigate(docUrl(d.appId, d.id))}
             style={{ width: '100%', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 12px', minHeight: 52, padding: '8px 20px', border: 0, borderTop: '1px solid var(--line-soft)', background: 'none', color: 'var(--text)', textAlign: 'left', cursor: 'pointer' }}
           >
+            <span style={{ flex: 'none', padding: '1px 8px', borderRadius: 6, border: '1px solid var(--line-strong)', fontSize: 12, fontWeight: 600, color: 'var(--text-2)' }}>{d.appId === null ? '공통' : (codeOf.get(d.appId) ?? '앱')}</span>
             <span style={{ flex: 'none', padding: '2px 8px', borderRadius: 6, background: 'var(--chip)', fontSize: 12, color: 'var(--text-2)' }}>{DOC_KIND[d.kind]}</span>
             <span className="ellipsis" style={{ flex: '1 1 160px', minWidth: 0, fontSize: 14, fontWeight: 600 }}>
               {d.title || '제목 없음'}

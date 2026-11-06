@@ -1,9 +1,10 @@
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { join } from 'node:path';
-import { IsNull, Repository } from 'typeorm';
+import { Brackets, IsNull, Repository } from 'typeorm';
 import type { MineDto, MyDocDto, MyDocFileDto, MyDocKind, MyDocRenew, MySecretMode, MyTodoDto } from '@hub/shared';
 import { HUB_CONFIG, HubConfig } from '../../config/hub-config';
+import { AppsService } from '../apps/apps.service';
 import { DocFilesService } from './doc-files.service';
 import { MyDoc } from './my-doc.entity';
 import { MyTodo } from './my-todo.entity';
@@ -39,11 +40,12 @@ export function toTodoDto(t: MyTodo): MyTodoDto {
 
 /**
  * @param d 문서
- * @param files 그 문서의 첨부 목록 (DocFilesService.byDoc)
+ * @param files 그 문서의 첨부 목록 (DocFilesService.byOwner)
  */
 export function toDocDto(d: MyDoc, files: MyDocFileDto[] = []): MyDocDto {
   return {
     id: d.id,
+    appId: d.appId,
     kind: d.kind,
     title: d.title,
     fields: d.fields ?? [],
@@ -78,7 +80,10 @@ export interface DocPatch {
   memo?: string;
 }
 
-/** 내 업무: 앱에 묶이지 않는 내 할 일과 계정·키·결제·도메인 문서 */
+/**
+ * 내 업무: 앱에 묶이지 않는 내 할 일과 보관함(계정·키·결제·도메인 문서).
+ * 보관함 문서는 app_id로 공통(null)과 앱 전용을 나눈다. 고치기·키 값·첨부는 문서 id로 하니 둘 다 같은 코드를 쓴다.
+ */
 @Injectable()
 export class MineService {
   private readonly box: SecretBox;
@@ -88,12 +93,14 @@ export class MineService {
     @InjectRepository(MyTodo) private readonly todos: Repository<MyTodo>,
     @InjectRepository(MyDoc) private readonly docs: Repository<MyDoc>,
     private readonly files: DocFilesService,
+    private readonly apps: AppsService,
   ) {
     this.box = new SecretBox(join(config.hubHome, 'secret.key'));
   }
 
+  /** 할 일과 보관함 문서 전부(공통 + 앱 전용). 화면이 appId로 나눠 보여 준다(오늘 화면의 만료 알림은 둘 다 쓴다) */
   async all(): Promise<MineDto> {
-    const [todos, docs, files] = await Promise.all([this.todos.find({ order: { id: 'ASC' } }), this.docs.find({ order: { id: 'ASC' } }), this.files.byDoc()]);
+    const [todos, docs, files] = await Promise.all([this.todos.find({ order: { id: 'ASC' } }), this.docs.find({ order: { id: 'ASC' } }), this.files.byOwner()]);
     return { todos: todos.map(toTodoDto), docs: docs.map((d) => toDocDto(d, files.get(d.id))) };
   }
 
@@ -112,7 +119,7 @@ export class MineService {
   }
 
   private async withFiles(d: MyDoc): Promise<MyDocDto> {
-    return toDocDto(d, (await this.files.byDoc([d.id])).get(d.id));
+    return toDocDto(d, (await this.files.byOwner([d.id])).get(d.id));
   }
 
   private async doc(id: number): Promise<MyDoc> {
@@ -164,8 +171,14 @@ export class MineService {
     await this.todos.remove(await this.todo(id));
   }
 
-  addDoc(kind: MyDocKind, title: string): Promise<MyDocDto> {
-    return this.docs.save(this.docs.create({ kind, title: title.trim(), fields: [], secretMode: SECRET0[kind], renewLabel: RENEW0[kind] ?? '만료' })).then(toDocDto);
+  /**
+   * @param kind 문서 종류 (기본 키 방식·만료 이름을 정한다)
+   * @param title 제목
+   * @param appId 앱 전용이면 그 앱 id(없는 앱이면 404), 모든 앱 공통이면 null
+   */
+  async addDoc(kind: MyDocKind, title: string, appId: number | null = null): Promise<MyDocDto> {
+    if (appId !== null) await this.apps.get(appId);
+    return toDocDto(await this.docs.save(this.docs.create({ appId, kind, title: title.trim(), fields: [], secretMode: SECRET0[kind], renewLabel: RENEW0[kind] ?? '만료' })));
   }
 
   /** 값 저장에서 다른 방식으로 바꾸면 저장한 값을 지운다(화면이 먼저 확인을 받는다) */
@@ -211,10 +224,15 @@ export class MineService {
     this.files.unlink(stored);
   }
 
-  /** 세션 맥락에 넣을 문서 줄: 만료가 가까운 것부터. 값 원문 대신 끝 4자리만 */
-  async contextDocs(limit: number): Promise<Array<{ title: string; kind: string; secret: string; expires: string | null }>> {
+  /**
+   * 세션 맥락에 넣을 보관함 줄: 모든 앱 공통 문서와 그 앱 전용 문서, 만료가 가까운 것부터. 값 원문 대신 끝 4자리만.
+   * @param appId 세션이 도는 앱
+   * @param limit 최대 줄 수
+   */
+  async contextDocs(appId: number, limit: number): Promise<Array<{ title: string; kind: string; secret: string; expires: string | null; scope: '공통' | '이 앱' }>> {
     const docs = await this.docs
       .createQueryBuilder('d')
+      .where(new Brackets((w) => w.where('d.app_id IS NULL').orWhere('d.app_id = :appId', { appId })))
       .orderBy('d.expires_on', 'ASC', 'NULLS LAST')
       .addOrderBy('d.updated_at', 'DESC')
       .limit(limit)
@@ -222,6 +240,7 @@ export class MineService {
     return docs.map((d) => ({
       title: d.title || '제목 없음',
       kind: DOC_KIND_LABEL[d.kind] ?? d.kind,
+      scope: d.appId === null ? '공통' : '이 앱',
       secret: d.secretMode === 'ref' && d.secretRef ? `위치: ${d.secretRef}` : d.secretMode === 'value' && d.secretEnc ? `값은 Hub에 저장(끝 4자리 ${d.secretLast4})` : '',
       expires: d.expiresOn ? `${d.renewLabel} ${d.expiresOn}` : null,
     }));

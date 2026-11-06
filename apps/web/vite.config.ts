@@ -17,6 +17,8 @@ export default defineConfig({
     // Host를 바꾸지 않아야 서버가 데이터를 바꾸는 요청의 Origin(5173)과 Host가 같은지 확인할 수 있다.
     proxy: {
       '/api': { target: hub, changeOrigin: false },
+      // 문서 탭의 파일 보기 주소 (/view/<서명>/docs/…)
+      '/view': { target: hub, changeOrigin: false },
       '/ws': { target: hub.replace(/^http/, 'ws'), ws: true, changeOrigin: false },
     },
   },

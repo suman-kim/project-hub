@@ -1,47 +1,54 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
-import type { MyDocDto, MyDocFileDto, MyDocKind, MyDocRenew, MySecretMode, MyTodoDto } from '@hub/shared';
+import type { MyDocDto, MyDocKind, MyDocRenew, MySecretMode, MyTodoDto } from '@hub/shared';
 import { MY_DOC_KINDS } from '@hub/shared';
 import { useAction } from '../api/mutations';
 import { Segmented } from '../components/forms';
 import { Select } from '../components/Select';
 import { IconClose } from '../components/icons';
 import { Dialog, ErrorBox, Skeleton, useUi } from '../components/ui';
-import { fileSize, stamp } from '../lib/format';
-import { ALERT_DAYS, daysLeft, dLeft, DOC_KIND, FILE_KIND, isoDay, MAX_FILE_MB, mdOf, useMine, useMineApi } from '../lib/mine';
+import { stamp } from '../lib/format';
+import { ALERT_DAYS, daysLeft, dLeft, DOC_KIND, isoDay, MAX_FILE_MB, mdOf, useMine, useMineApi } from '../lib/mine';
 import { usePrefs } from '../lib/prefs';
-import { TextFile } from './AppDocs';
+import { useNotes } from '../lib/notes';
+import { AttachmentList } from '../components/Attachments';
+import { NotesTab } from './AppNotes';
 
 const PRIO: Record<1 | 2 | 3, string> = { 1: '우선순위 높음', 2: '우선순위 보통', 3: '우선순위 낮음' };
 const SECRET0: Record<MyDocKind, MySecretMode> = { store: 'ref', apikey: 'ref', billing: 'none', domain: 'none', legal: 'none', memo: 'none' };
 const KIND_ORDER = [...MY_DOC_KINDS].sort();
 
-type Tab = 'todo' | 'docs';
+type Tab = 'todo' | 'notes' | 'vault';
 
-/** 내 업무: 앱에 묶이지 않는 내 할 일과 계정·키·결제·도메인 문서. ?tab=docs&doc=ID로 문서 서랍을 연다 */
+/** 주소의 ?tab= 값 → 탭. 예전 주소(?tab=docs)도 보관함으로 연다 */
+function tabOf(v: string | null): Tab {
+  return v === 'notes' ? 'notes' : v === 'vault' || v === 'docs' ? 'vault' : 'todo';
+}
+
+/** 내 업무: 앱에 묶이지 않는 내 할 일, 노트, 보관함(계정·키·결제·도메인 문서). ?tab=vault&doc=ID로 문서 서랍을 연다 */
 export function Mine() {
   const [params, setParams] = useSearchParams();
-  const tab: Tab = params.get('tab') === 'docs' ? 'docs' : 'todo';
-  const docId = Number(params.get('doc')) || null;
+  const tab = tabOf(params.get('tab'));
   const mine = useMine();
-  const setTab = (t: Tab) => setParams(t === 'docs' ? { tab: 'docs' } : {}, { replace: true });
-  const openDoc = (id: number | null) => setParams(id ? { tab: 'docs', doc: String(id) } : { tab: 'docs' }, { replace: !!docId === !!id });
+  const notes = useNotes(null);
+  const setTab = (t: Tab) => setParams(t === 'todo' ? {} : { tab: t }, { replace: true });
+  const openDoc = (id: number) => setParams({ tab: 'vault', doc: String(id) });
   const todos = mine.data?.todos ?? [];
-  const docs = mine.data?.docs ?? [];
-  const open = docs.find((d) => d.id === docId) ?? null;
+  // 할 일에 연결하는 문서는 공통 보관함 것만 (앱 전용 문서는 앱 페이지 보관함에 있다)
+  const common = (mine.data?.docs ?? []).filter((d) => d.appId === null);
 
   return (
     <div data-screen-label="내 업무" className="page">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <span className="page-sub">앱에 묶이지 않는 내 할 일과 계정·키·결제·도메인 문서 · 모든 앱에 공통이에요</span>
+        <span className="page-sub">앱에 묶이지 않는 내 할 일, 노트, 계정·키·결제·도메인 보관함 · 모든 앱에 공통이에요</span>
         <h1 className="page-title">내 업무</h1>
       </div>
       <div role="tablist" aria-label="내 업무" style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--line)' }}>
         {(
           [
             ['todo', '할 일', todos.filter((t) => !t.parentId && !t.done).length],
-            ['docs', '문서', docs.length],
+            ['notes', '노트', notes.data?.length],
+            ['vault', '보관함', common.length],
           ] as const
         ).map(([k, label, n]) => (
           <button
@@ -53,22 +60,55 @@ export function Mine() {
             style={{ minHeight: 44, padding: '0 14px', marginBottom: -1, border: 0, borderBottom: `2px solid ${tab === k ? 'var(--accent)' : 'transparent'}`, background: 'none', color: tab === k ? 'var(--text)' : 'var(--text-3)', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
           >
             {label}
-            <span className="mono" style={{ padding: '0 7px', borderRadius: 999, background: 'var(--chip)', color: 'var(--text-2)', fontSize: 12 }}>
-              {n}
-            </span>
+            {n !== undefined && (
+              <span className="mono" style={{ padding: '0 7px', borderRadius: 999, background: 'var(--chip)', color: 'var(--text-2)', fontSize: 12 }}>
+                {n}
+              </span>
+            )}
           </button>
         ))}
       </div>
-      {mine.isLoading && <Skeleton rows={6} height={48} />}
-      {mine.error && <ErrorBox error={mine.error} onRetry={() => void mine.refetch()} />}
-      {mine.data && tab === 'todo' && <TodoTab todos={todos} docs={docs} openDoc={openDoc} />}
-      {mine.data && tab === 'docs' && <DocsTab docs={docs} openId={docId} openDoc={openDoc} />}
-      {open && <DocDrawer key={open.id} doc={open} onClose={() => openDoc(null)} />}
+      {tab === 'todo' && mine.isLoading && <Skeleton rows={6} height={48} />}
+      {tab === 'todo' && mine.error && <ErrorBox error={mine.error} onRetry={() => void mine.refetch()} />}
+      {tab === 'todo' && mine.data && <TodoTab todos={todos} docs={common} openDoc={openDoc} />}
+      {tab === 'notes' && <NotesTab owner={null} />}
+      {tab === 'vault' && <VaultPanel appId={null} />}
     </div>
   );
 }
 
-// ---- 할 일 ----
+/**
+ * 보관함: 계정·키·결제·도메인·법무·메모 문서 목록과 문서 서랍. 내 업무(공통)와 앱 페이지(앱 전용)가 같이 쓴다.
+ * 문서는 공통·앱 전용이 모두 ['mine'] 캐시에 있고, 여기서 appId로 골라 보여 준다. 연 문서는 주소의 ?doc=로 남긴다.
+ * @param appId 앱 전용 보관함이면 앱 id, 내 업무 공통 보관함이면 null
+ */
+export function VaultPanel({ appId }: { appId: number | null }) {
+  const [params, setParams] = useSearchParams();
+  const mine = useMine();
+  const docId = Number(params.get('doc')) || null;
+  // 다른 쿼리(내 업무의 ?tab=)는 그대로 두고 ?doc=만 바꾼다. 열 때는 기록을 남겨 뒤로 가기로 닫히게 한다.
+  const openDoc = (id: number | null) =>
+    setParams(
+      (p) => {
+        const next = new URLSearchParams(p);
+        if (id) next.set('doc', String(id));
+        else next.delete('doc');
+        return next;
+      },
+      { replace: !!docId === !!id },
+    );
+  const docs = (mine.data?.docs ?? []).filter((d) => d.appId === appId);
+  const open = docs.find((d) => d.id === docId) ?? null;
+
+  if (mine.isLoading) return <Skeleton rows={6} height={48} />;
+  if (mine.error) return <ErrorBox error={mine.error} onRetry={() => void mine.refetch()} />;
+  return (
+    <>
+      <DocsTab docs={docs} appId={appId} openId={docId} openDoc={openDoc} />
+      {open && <DocDrawer key={open.id} doc={open} onClose={() => openDoc(null)} />}
+    </>
+  );
+}
 
 function TodoTab({ todos, docs, openDoc }: { todos: MyTodoDto[]; docs: MyDocDto[]; openDoc(id: number): void }) {
   const ui = useUi();
@@ -398,7 +438,13 @@ function docSub(d: MyDocDto): string {
   return d.memo.split('\n')[0] ?? '';
 }
 
-function DocsTab({ docs, openId, openDoc }: { docs: MyDocDto[]; openId: number | null; openDoc(id: number): void }) {
+/**
+ * @param docs 이 보관함의 문서 (공통이면 공통 것만, 앱이면 그 앱 것만)
+ * @param appId 앱 전용 보관함이면 앱 id, 공통이면 null (새 문서가 어디에 생길지)
+ * @param openId 서랍에 열린 문서
+ * @param openDoc 문서 서랍 열기
+ */
+function DocsTab({ docs, appId, openId, openDoc }: { docs: MyDocDto[]; appId: number | null; openId: number | null; openDoc(id: number): void }) {
   const [kind, setKind] = useState<MyDocKind | 'all'>('all');
   const [adding, setAdding] = useState(false);
   const shown = docs
@@ -422,7 +468,12 @@ function DocsTab({ docs, openId, openDoc }: { docs: MyDocDto[]; openId: number |
         </button>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '12px 14px', borderRadius: 10, background: 'var(--bg)', fontSize: 13, color: 'var(--text-2)', lineHeight: 1.55 }}>
-        <span>ⓘ Claude가 새 세션에서 이 문서들을 읽어요 ([Hub context]). 저장한 키 값은 넘기지 않고, 이름과 위치, 마지막 4자리만 넘겨요.</span>
+        <span>
+          {appId === null
+            ? 'ⓘ 여기 문서는 모든 앱에 공통이에요. 한 앱에서만 쓰는 계정·키는 그 앱 페이지의 보관함에 두세요. '
+            : 'ⓘ 이 앱에서만 쓰는 문서예요. 여러 앱에 두루 쓰는 계정·키는 내 업무의 보관함에 두세요. '}
+          Claude가 새 세션에서 {appId === null ? '이 문서들을' : '이 문서들과 공통 보관함을'} 읽어요 ([Hub context]). 저장한 키 값은 넘기지 않고, 이름과 위치, 마지막 4자리만 넘겨요.
+        </span>
         {near > 0 && <span style={{ color: 'var(--attn)' }}>14일 안에 만료·갱신되는 문서 {near}개는 대시보드에도 떠요</span>}
       </div>
       <section className="card">
@@ -463,11 +514,12 @@ function DocsTab({ docs, openId, openDoc }: { docs: MyDocDto[]; openId: number |
             <ExpiryPill d={d} />
           </button>
         ))}
-        {!shown.length && <div className="card-empty">{docs.length ? '이 종류의 문서가 없어요' : '아직 문서가 없어요 · 문서 추가로 계정·키·결제·도메인을 남겨요'}</div>}
+        {!shown.length && <div className="card-empty">{docs.length ? '이 종류의 문서가 없어요' : `아직 문서가 없어요 · 문서 추가로 ${appId === null ? '' : '이 앱의 '}계정·키·결제·도메인을 남겨요`}</div>}
       </section>
       {adding && (
         <AddDoc
           kind={kind === 'all' ? 'apikey' : kind}
+          appId={appId}
           onClose={() => setAdding(false)}
           onCreated={(id) => {
             setAdding(false);
@@ -480,14 +532,19 @@ function DocsTab({ docs, openId, openDoc }: { docs: MyDocDto[]; openId: number |
   );
 }
 
-function AddDoc({ kind: kind0, onClose, onCreated }: { kind: MyDocKind; onClose(): void; onCreated(id: number): void }) {
+/**
+ * @param kind 처음 고른 종류
+ * @param appId 앱 전용 보관함이면 앱 id, 공통이면 null
+ * @param onCreated 만든 뒤 그 문서 서랍을 연다
+ */
+function AddDoc({ kind: kind0, appId, onClose, onCreated }: { kind: MyDocKind; appId: number | null; onClose(): void; onCreated(id: number): void }) {
   const ui = useUi();
   const mx = useMineApi();
   const [kind, setKind] = useState<MyDocKind>(kind0);
   const [title, setTitle] = useState('');
   const create = useAction(async () => {
     if (!title.trim()) return;
-    const d = await mx.addDoc(kind, title.trim());
+    const d = await mx.addDoc(kind, title.trim(), appId);
     ui.toast('문서를 만들었어요');
     onCreated(d.id);
   });
@@ -755,228 +812,13 @@ function DocDrawer({ doc, onClose }: { doc: MyDocDto; onClose(): void }) {
   );
 }
 
-const MB = 1024 * 1024;
-
 /**
- * 문서 서랍의 첨부 파일: 끌어 놓거나 골라서 올리고(여러 개는 차례로), PDF·md·텍스트·그림은 눌러서 바로 본다.
- * 그 밖의 파일은 이름을 누르면 내려받는다.
+ * 문서 서랍의 첨부 파일: 끌어 놓거나 골라서 올리고, PDF·md·텍스트·그림은 눌러서 바로 본다. 화면은 AttachmentList가 그린다.
+ * @param doc 첨부를 붙일 보관함 문서
  */
 function DocFiles({ doc }: { doc: MyDocDto }) {
-  const ui = useUi();
   const mx = useMineApi();
-  const input = useRef<HTMLInputElement>(null);
-  const [drag, setDrag] = useState(false);
-  /** 올리는 중이면 몇 개 중 몇 개째인지 */
-  const [busy, setBusy] = useState<{ done: number; total: number } | null>(null);
-  const [viewing, setViewing] = useState<number | null>(null);
-
-  // 서랍이 열린 동안 끌어 놓기 칸 밖에 떨어뜨린 파일을 브라우저가 열어 Hub 화면을 떠나지 않게 한다.
-  useEffect(() => {
-    const stop = (e: DragEvent) => e.preventDefault();
-    window.addEventListener('dragover', stop);
-    window.addEventListener('drop', stop);
-    return () => {
-      window.removeEventListener('dragover', stop);
-      window.removeEventListener('drop', stop);
-    };
-  }, []);
-
-  const upload = async (picked: File[]) => {
-    if (!picked.length || busy) return;
-    const ok = picked.filter((f) => f.size > 0 && f.size <= MAX_FILE_MB * MB);
-    const big = picked.filter((f) => f.size > MAX_FILE_MB * MB);
-    if (big.length) ui.toast(`${MAX_FILE_MB}MB를 넘어 올리지 않았어요: ${big.map((f) => f.name).join(', ')}`, { error: true });
-    else if (ok.length < picked.length) ui.toast('빈 파일과 폴더는 건너뛰었어요', { error: true });
-    if (!ok.length) return;
-    let sent = 0;
-    setBusy({ done: 0, total: ok.length });
-    for (const f of ok) {
-      try {
-        await mx.uploadFile(doc.id, f);
-        sent++;
-      } catch (e) {
-        ui.fail(e);
-      }
-      setBusy((b) => b && { ...b, done: b.done + 1 });
-    }
-    setBusy(null);
-    if (sent) ui.toast(`파일 ${sent}개를 붙였어요`);
-  };
-  const remove = useAction(async (f: MyDocFileDto) => {
-    if (!(await ui.confirm({ title: '이 파일을 지울까요?', body: f.name, label: '지우기' }))) return;
-    await mx.deleteFile(f.id);
-    ui.toast('파일을 지웠어요');
-  });
-
-  return (
-    <>
-      {doc.files.map((f) => (
-        <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 48, padding: '4px 4px 4px 10px', borderRadius: 8, border: '1px solid var(--line-soft)' }}>
-          <FileKindTag f={f} />
-          {f.kind === 'other' ? (
-            <a href={`${f.url}?download=1`} className="ellipsis" title={`${f.name} 내려받기`} style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
-              {f.name}
-            </a>
-          ) : (
-            <button type="button" className="ellipsis" title={`${f.name} 보기`} onClick={() => setViewing(f.id)} style={{ flex: 1, minWidth: 0, minHeight: 36, padding: 0, border: 0, background: 'none', textAlign: 'left', fontSize: 13, fontWeight: 500, color: 'var(--text)', cursor: 'pointer' }}>
-              {f.name}
-            </button>
-          )}
-          <span className="mono" style={{ flex: 'none', fontSize: 11, color: 'var(--text-3)' }}>
-            {fileSize(f.size)}
-          </span>
-          <a className="icon-btn" href={`${f.url}?download=1`} aria-label={`${f.name} 내려받기`} title="내려받기">
-            <IconDownload />
-          </a>
-          <button type="button" className="icon-btn" aria-label={`${f.name} 지우기`} title="지우기" disabled={remove.busy} onClick={() => void remove.run(f)}>
-            ×
-          </button>
-        </div>
-      ))}
-      <div
-        onDragEnter={(e) => {
-          e.preventDefault();
-          setDrag(true);
-        }}
-        onDragOver={(e) => e.preventDefault()}
-        onDragLeave={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDrag(false);
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDrag(false);
-          void upload([...e.dataTransfer.files]);
-        }}
-        style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 56, padding: '10px 12px 10px 16px', borderRadius: 10, border: `1.5px dashed ${drag ? 'var(--accent)' : 'var(--line-strong)'}`, background: drag ? 'var(--accent-sel)' : 'var(--bg)', fontSize: 13, color: drag ? 'var(--text)' : 'var(--text-3)', transition: 'background .12s, border-color .12s' }}
-      >
-        <span style={{ flex: 1, minWidth: 0 }}>{busy ? `올리는 중 ${Math.min(busy.done + 1, busy.total)}/${busy.total}…` : drag ? '여기에 놓으면 붙여요' : '파일을 여기로 끌어 놓거나'}</span>
-        <button type="button" className="btn btn-sm" disabled={!!busy} onClick={() => input.current?.click()}>
-          파일 고르기
-        </button>
-        <input
-          ref={input}
-          type="file"
-          multiple
-          hidden
-          onChange={(e) => {
-            const picked = [...(e.target.files ?? [])];
-            e.target.value = '';
-            void upload(picked);
-          }}
-        />
-      </div>
-      <span style={{ fontSize: 12, color: 'var(--text-3)' }}>PDF·md·텍스트·그림은 눌러서 바로 봐요 · 한 파일 {MAX_FILE_MB}MB까지 · Hub 폴더(~/.hub/files)에 그대로 저장되고 Claude에게는 넘기지 않아요</span>
-      {viewing !== null && <FileViewer files={doc.files} id={viewing} onPick={setViewing} onClose={() => setViewing(null)} />}
-    </>
-  );
-}
-
-/** 종류 꼬리표 색: PDF는 붉게, md는 파랗게, 나머지는 회색 */
-const TAG_TONE: Partial<Record<MyDocFileDto['kind'], [string, string]>> = { pdf: ['var(--risk-bg)', 'var(--risk)'], md: ['var(--accent-bg)', 'var(--accent-ink)'] };
-
-function FileKindTag({ f }: { f: MyDocFileDto }) {
-  const [bg, fg] = TAG_TONE[f.kind] ?? ['var(--chip)', 'var(--text-2)'];
-  return (
-    <span className="mono" style={{ flex: 'none', minWidth: 40, padding: '2px 6px', borderRadius: 6, background: bg, color: fg, fontSize: 10, fontWeight: 700, textAlign: 'center' }}>
-      {FILE_KIND[f.kind]}
-    </span>
-  );
-}
-
-function IconDownload() {
-  return (
-    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
-    </svg>
-  );
-}
-
-/**
- * 첨부 보기 창: PDF는 브라우저 PDF 보기로, md는 렌더링해서, 텍스트는 글자 그대로, 그림은 화면에 맞춰 보여 준다.
- * 볼 수 있는 파일이 여럿이면 ← →로 넘긴다. Esc는 이 창만 닫는다(서랍은 열린 대화창이 있으면 Esc를 넘긴다).
- * @param files 문서의 첨부 목록
- * @param id 지금 볼 파일
- */
-function FileViewer({ files, id, onPick, onClose }: { files: MyDocFileDto[]; id: number; onPick(id: number): void; onClose(): void }) {
-  const { m } = usePrefs();
-  const shown = files.filter((f) => f.kind !== 'other');
-  const i = shown.findIndex((f) => f.id === id);
-  const f = shown[i];
-  const step = (d: 1 | -1) => shown.length > 1 && onPick(shown[(i + d + shown.length) % shown.length].id);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      else if (e.key === 'ArrowRight') step(1);
-      else if (e.key === 'ArrowLeft') step(-1);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
-  // 보던 파일을 지우면 닫는다.
-  useEffect(() => {
-    if (!f) onClose();
-  }, [f, onClose]);
-  if (!f) return null;
-
-  return createPortal(
-    <div className="scrim" onClick={onClose} style={{ padding: m ? 0 : 16 }}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${f.name} 보기`}
-        onClick={(e) => e.stopPropagation()}
-        style={{ width: m ? '100vw' : 'min(1100px, calc(100vw - 32px))', height: m ? '100dvh' : 'calc(100dvh - 32px)', display: 'flex', flexDirection: 'column', background: 'var(--surface)', border: m ? 0 : '1px solid var(--line)', borderRadius: m ? 0 : 12, boxShadow: '0 24px 60px var(--shadow)', overflow: 'hidden' }}
-      >
-        <header style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, padding: '10px 12px 10px 18px', paddingTop: m ? 'max(10px, env(safe-area-inset-top))' : 10, borderBottom: '1px solid var(--line-soft)' }}>
-          <FileKindTag f={f} />
-          <span style={{ flex: m ? '1 1 0' : '1 1 200px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <span className="ellipsis" style={{ fontSize: 14, fontWeight: 600 }}>
-              {f.name}
-            </span>
-            <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
-              {fileSize(f.size)} · {stamp(f.createdAt)} 올림{shown.length > 1 ? ` · ${i + 1}/${shown.length}` : ''}
-            </span>
-          </span>
-          {shown.length > 1 && (
-            <>
-              <button type="button" className="icon-btn" aria-label="이전 파일 (←)" title="이전 파일 (←)" onClick={() => step(-1)}>
-                ‹
-              </button>
-              <button type="button" className="icon-btn" aria-label="다음 파일 (→)" title="다음 파일 (→)" onClick={() => step(1)}>
-                ›
-              </button>
-            </>
-          )}
-          {/* 좁은 화면에서는 닫기를 첫 줄에 두고 두 버튼은 줄을 바꿔 아래에 둔다 */}
-          {m && <span aria-hidden="true" style={{ order: 1, flexBasis: '100%', height: 0 }} />}
-          <a className="btn btn-sm" href={f.url} target="_blank" rel="noopener noreferrer" style={{ order: m ? 2 : undefined }}>
-            새 탭에서 열기
-          </a>
-          <a className="btn btn-sm" href={`${f.url}?download=1`} style={{ order: m ? 2 : undefined }}>
-            내려받기
-          </a>
-          <button type="button" className="icon-btn" aria-label="닫기 (Esc)" onClick={onClose}>
-            <IconClose size={18} />
-          </button>
-        </header>
-        <div style={{ flex: 1, minHeight: 0, overflow: f.kind === 'pdf' ? 'hidden' : 'auto', background: f.kind === 'image' ? 'var(--bg)' : undefined }}>
-          {f.kind === 'pdf' && <iframe key={f.id} src={f.url} title={f.name} style={{ display: 'block', width: '100%', height: '100%', border: 0, background: '#FFFFFF' }} />}
-          {(f.kind === 'md' || f.kind === 'text') && (
-            <div style={{ maxWidth: 860, margin: '0 auto', padding: m ? '18px 16px 40px' : '24px 32px 48px' }}>
-              <TextFile key={f.id} url={f.url} md={f.kind === 'md'} />
-            </div>
-          )}
-          {f.kind === 'image' && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 16 }}>
-              <img key={f.id} src={f.url} alt={f.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 6 }} />
-            </div>
-          )}
-        </div>
-      </div>
-    </div>,
-    document.body,
-  );
+  return <AttachmentList files={doc.files} onUpload={(f) => mx.uploadFile(doc.id, f)} onDelete={(f) => mx.deleteFile(f.id)} help={`PDF·md·텍스트·그림은 눌러서 바로 봐요 · 한 파일 ${MAX_FILE_MB}MB까지 · Hub 폴더(~/.hub/files)에 그대로 저장되고 Claude에게는 넘기지 않아요`} />;
 }
 
 /** 대시보드 등 다른 화면에서 쓰는 문서 이름 찾기 */

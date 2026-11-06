@@ -2,7 +2,7 @@ import type { AppStatusDto, DeployEnv, DeployStatus, IdeaDto, MyDocDto, MyTodoDt
 import { dueOffset } from '../lib/format';
 import { docAlerts, overdueMine, useMine } from '../lib/mine';
 import { usePrefs } from '../lib/prefs';
-import { useAppStatus, useIdeas, useRuns, useTasks } from './queries';
+import { useAppStatus, useApps, useIdeas, useRuns, useTasks } from './queries';
 
 /** task가 없는 실패(기획 생성, 새 앱 시작)는 다시 실행할 곳이 없어 이 기간만 오늘에 남긴다 */
 const LOOSE_FAILURE_DAYS = 7;
@@ -31,9 +31,9 @@ export interface Inbox {
   overdue: TaskDto[];
   /** 기한이 지난 내 업무 할 일 (앱 필터가 전체일 때만) */
   mineOverdue: MyTodoDto[];
-  /** 14일 안에 만료·갱신되는 내 업무 문서 (앱 필터가 전체일 때만) */
+  /** 14일 안에 만료·갱신되는 보관함 문서. 공통 문서는 앱 필터가 전체일 때만, 앱 전용 문서는 그 앱이 보일 때 */
   mineAlerts: MyDocDto[];
-  /** 사이드바 내 업무 배지: 앱 필터와 상관없이 만료 임박 문서 + 기한 지난 할 일 */
+  /** 사이드바 내 업무 배지: 앱 필터와 상관없이 공통 보관함의 만료 임박 문서 + 기한 지난 할 일 (앱 전용 문서는 앱 페이지에 있어 세지 않는다) */
   mineBadge: number;
   input: RunListItemDto[];
   sessions: WaitingSession[];
@@ -56,6 +56,7 @@ export function useInbox(): Inbox {
   const status = useAppStatus();
   const todos = useTasks({ assignee: 'me', status: ['todo', 'doing'] });
   const mine = useMine();
+  const apps = useApps();
 
   const okApp = (code: string | null) => appFilter === 'all' || code === appFilter;
   const all = runs.data ?? [];
@@ -83,15 +84,17 @@ export function useInbox(): Inbox {
   // 내 업무는 어느 앱에도 묶이지 않아서 전체를 볼 때만 처리할 일에 넣는다.
   const allMineOverdue = overdueMine(mine.data?.todos ?? []);
   const allMineAlerts = docAlerts(mine.data?.docs ?? []);
+  const codeOf = new Map((apps.data ?? []).map((a) => [a.id, a.code]));
   const mineOverdue = appFilter === 'all' ? allMineOverdue : [];
-  const mineAlerts = appFilter === 'all' ? allMineAlerts : [];
+  // 앱 전용 보관함 문서는 그 앱 것으로 걸러 보인다
+  const mineAlerts = allMineAlerts.filter((d) => (d.appId === null ? appFilter === 'all' : okApp(codeOf.get(d.appId) ?? null)));
 
   return {
     deployFailures,
     overdue,
     mineOverdue,
     mineAlerts,
-    mineBadge: allMineOverdue.length + allMineAlerts.length,
+    mineBadge: allMineOverdue.length + allMineAlerts.filter((d) => d.appId === null).length,
     input,
     sessions,
     failed,

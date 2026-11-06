@@ -463,7 +463,8 @@ export interface RunListItemDto extends RunDto {
 }
 
 /** 문서 탭에 보이는 파일 종류. 그 밖의 파일(js, css 등)은 목록에 없고 보기 주소로만 열린다 */
-export type ProjectFileKind = 'md' | 'text' | 'html' | 'image' | 'pdf';
+/** 문서 탭 파일 보기 방식. other는 docs/에 있는 그 밖의 파일(xlsx, zip 등)로 내려받기만 한다 */
+export type ProjectFileKind = 'md' | 'text' | 'html' | 'image' | 'pdf' | 'other';
 
 /** 프로젝트 docs/·design/ 아래 파일 한 개 */
 export interface ProjectFileDto {
@@ -647,9 +648,11 @@ export interface MyTodoDto {
   createdAt: string;
 }
 
-/** 키 값 원문은 담지 않는다. 보기·복사는 GET /api/mine/docs/:id/secret으로 따로 받는다 */
+/** 보관함 문서. 키 값 원문은 담지 않는다. 보기·복사는 GET /api/mine/docs/:id/secret으로 따로 받는다 */
 export interface MyDocDto {
   id: number;
+  /** 이 문서를 쓰는 앱 id. null이면 모든 앱 공통(내 업무 보관함) */
+  appId: number | null;
   kind: MyDocKind;
   title: string;
   fields: Array<[string, string]>;
@@ -691,11 +694,11 @@ export interface MineDto {
   docs: MyDocDto[];
 }
 
-/** 앱별 노트: 명령어 보관, 간단한 메모, 할 일 등 자유 글. 본문은 markdown */
+/** 노트: 명령어 보관, 간단한 메모, 할 일 등 자유 글. 본문은 markdown. 앱 노트와 내 업무 공통 노트가 같은 모양이다 */
 export interface AppNoteDto {
   id: number;
-  /** 노트가 속한 앱 id */
-  appId: number;
+  /** 노트가 속한 앱 id. null이면 앱에 묶이지 않은 내 업무 공통 노트 */
+  appId: number | null;
   /** 노트를 묶는 폴더 이름. 비우면 폴더 없음 */
   folder: string;
   /** 제목. 비우면 화면에서 본문 첫 줄을 보여 준다 */
@@ -704,6 +707,30 @@ export interface AppNoteDto {
   body: string;
   /** 목록 맨 위 고정 */
   pinned: boolean;
+  /** 첨부 파일, 올린 순. 그림은 본문에 ![이름](url) 블록으로도 들어간다 */
+  files: NoteFileDto[];
   createdAt: string;
+  /** 마지막 수정 시각. 첨부를 붙이거나 지울 때도 오른다 */
   updatedAt: string;
+}
+
+/** 노트 첨부 파일. 내용은 Hub 폴더(~/.hub/files/)에 그대로 두고 목록만 DB에 있다 */
+export interface NoteFileDto {
+  id: number;
+  /** 첨부한 노트 id */
+  noteId: number;
+  /** 올린 파일 이름 */
+  name: string;
+  kind: MyFileKind;
+  /** 바이트 */
+  size: number;
+  /** 화면 안에서 여는 주소(그림 블록의 src로도 쓴다). 뒤에 ?download=1을 붙이면 내려받는다 */
+  url: string;
+  createdAt: string;
+}
+
+/** 노트에 파일을 올린 응답: 첨부 목록이 담긴 노트와 방금 올린 파일 */
+export interface NoteUploadDto {
+  note: AppNoteDto;
+  file: NoteFileDto;
 }

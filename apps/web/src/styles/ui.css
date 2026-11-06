@@ -192,3 +192,7 @@ button { color: inherit; }
 .menu-item:hover { background: var(--hover) !important; }
 .link-chip:hover { border-color: var(--text-3) !important; color: var(--text) !important; }
 .list-item:hover { border-color: var(--line-strong) !important; }
+
+/* 노트 편집기: 글이 없는 블록(구분선, 그림)을 골랐을 때 보이는 테두리 */
+.block-atom{outline:none}
+.block-atom:focus-visible,.block-atom:focus{box-shadow:0 0 0 2px var(--accent)}

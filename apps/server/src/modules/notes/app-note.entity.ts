@@ -2,22 +2,23 @@ import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, Primary
 import { App } from '../apps/app.entity';
 
 /**
- * 앱별 노트: 노션처럼 자유롭게 쓰는 글. 명령어 보관, 간단한 메모, 할 일 등.
+ * 노트: 노션처럼 자유롭게 쓰는 글. 명령어 보관, 간단한 메모, 할 일 등.
+ * 앱 노트(app_id 있음)와 내 업무 공통 노트(app_id 없음)를 한 테이블에 둔다. 편집기·저장·폴더 규칙이 같기 때문이다.
  * 본문은 markdown으로 둔다. 블록 편집기가 markdown으로 읽고 쓰고, 나중에 Claude 맥락이나 docs/로 내보내기 쉽다.
  */
-@Entity({ name: 'app_notes', comment: '앱별 노트. 명령어 보관, 간단한 메모, 할 일 등 자유 글. 본문은 markdown' })
+@Entity({ name: 'app_notes', comment: '노트. 명령어 보관, 간단한 메모, 할 일 등 자유 글. 본문은 markdown. app_id가 비면 내 업무 공통 노트' })
 export class AppNote {
   @PrimaryGeneratedColumn({ comment: '노트 id' })
   id: number;
 
-  /** 노트가 속한 앱. 앱을 지우면 함께 지워진다 */
+  /** 노트가 속한 앱. null이면 앱에 묶이지 않은 내 업무 공통 노트. 앱을 지우면 함께 지워진다 */
   @Index()
-  @Column({ name: 'app_id', type: 'int', comment: '노트가 속한 앱 (apps.id). 앱을 지우면 함께 지운다' })
-  appId: number;
+  @Column({ name: 'app_id', type: 'int', nullable: true, comment: '노트가 속한 앱 (apps.id). 비우면 내 업무 공통 노트. 앱을 지우면 함께 지운다' })
+  appId: number | null;
 
-  @ManyToOne(() => App, { onDelete: 'CASCADE' })
+  @ManyToOne(() => App, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'app_id' })
-  app: App;
+  app: App | null;
 
   /** 노트를 묶는 폴더 이름. 비우면 폴더 없음 */
   @Column({ type: 'text', default: '', comment: '노트를 묶는 폴더 이름 (예: 명령어, 할 일). 비우면 폴더 없음' })

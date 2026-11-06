@@ -7,8 +7,8 @@ export interface ContextInput {
   task: { id: string; title: string; status: string; specs: Array<{ id: number; kind: string; title: string }> } | null;
   openTasks: Array<{ id: string; title: string; status: string }>;
   mistakes: Array<{ what: string; correctWay: string }>;
-  /** 내 업무 문서(앱 공통). 키 값 원문은 넣지 않는다 */
-  myDocs?: Array<{ title: string; kind: string; secret: string; expires: string | null }>;
+  /** 보관함 문서(모든 앱 공통 + 이 앱 전용). 키 값 원문은 넣지 않는다 */
+  myDocs?: Array<{ title: string; kind: string; secret: string; expires: string | null; scope?: '공통' | '이 앱' }>;
   /** task: task가 연결되기 전까지 수정을 막는다, register: 등록 안 된 프로젝트 폴더라 막는다 */
   guard?: 'task' | 'register' | null;
 }
@@ -19,7 +19,7 @@ const GUARD_LINE = {
 };
 
 /**
- * [Hub context] 블록을 만든다. 순서는 앱 → 이 세션의 task → 열린 task → 실수 기록 → 내 업무 문서로 고정한다.
+ * [Hub context] 블록을 만든다. 순서는 앱 → 이 세션의 task → 열린 task → 실수 기록 → 보관함 문서로 고정한다.
  * 상한을 넘으면 뒤에서부터 줄 단위로 잘라 앞쪽의 중요한 내용을 남긴다.
  */
 export function buildContext(input: ContextInput, maxChars: number): string {
@@ -59,8 +59,8 @@ export function buildContext(input: ContextInput, maxChars: number): string {
   }
 
   if (input.myDocs?.length) {
-    lines.push('내 업무 문서 (모든 앱 공통 계정·키·결제·도메인. 키 값은 Hub에만 있고 여기에는 위치나 끝 4자리만 있다):');
-    for (const d of input.myDocs) lines.push(`- [${d.kind}] ${d.title}${d.secret ? ` · ${d.secret}` : ''}${d.expires ? ` · ${d.expires}` : ''}`);
+    lines.push('보관함 (모든 앱 공통과 이 앱 전용 계정·키·결제·도메인. 키 값은 Hub에만 있고 여기에는 위치나 끝 4자리만 있다):');
+    for (const d of input.myDocs) lines.push(`- [${d.scope ? `${d.scope} · ` : ''}${d.kind}] ${d.title}${d.secret ? ` · ${d.secret}` : ''}${d.expires ? ` · ${d.expires}` : ''}`);
   }
   return truncateLines(lines, maxChars);
 }

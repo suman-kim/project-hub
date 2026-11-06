@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from 'react';
-import { BLOCK_MENU, LIST_TYPES, newBlock, shortcutOf, type Block, type BlockType } from '../lib/blocks';
+import { useLayoutEffect, useRef, useState, type ClipboardEvent, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent } from 'react';
+import { BLOCK_MENU, imageBlock, LIST_TYPES, newBlock, shortcutOf, type Block, type BlockType } from '../lib/blocks';
 import { inline } from '../lib/md';
 import { IconCopy } from './icons';
 import { useCopy } from './ui';
@@ -11,10 +11,21 @@ import { useCopy } from './ui';
  * - ↑↓: 블록 사이 이동 · Cmd+Shift+↑↓: 블록 옮기기
  * - "/": 블록 종류 메뉴 · "# ", "- ", "1. ", "[] ", "> ", "```", "---": 단축 입력
  * - 코드 블록: Enter는 줄바꿈, Cmd+Enter로 나가기, 복사 버튼
+ * - 그림: 붙여넣기·끌어 놓기·"/그림"으로 올리면 그 자리에 그림 블록이 생긴다 (onUpload가 있을 때만)
  * 고치지 않는 블록은 굵게·코드·링크를 렌더링해 보여 주고, 누르면 그 자리에서 고친다.
  */
-export function BlockEditor({ blocks, onChange, autoFocus }: { blocks: Block[]; onChange(next: Block[]): void; /** 처음 열 때 첫 블록에 커서를 둔다 */ autoFocus?: boolean }) {
+export function BlockEditor({ blocks, onChange, autoFocus, onUpload }: EditorProps) {
   const root = useRef<HTMLDivElement>(null);
+  /** 올리기가 끝났을 때 그 사이 바뀐 블록에 그림을 넣도록 늘 최신 값을 둔다 */
+  const latest = useRef({ blocks, onChange });
+  latest.current = { blocks, onChange };
+  const fileInput = useRef<HTMLInputElement>(null);
+  /** "/그림"으로 파일을 고를 때 그림을 넣을 블록 */
+  const pickAt = useRef<string | null>(null);
+  /** 올리는 중인 파일 수 */
+  const [uploading, setUploading] = useState(0);
+  /** 파일을 끌어 편집기 위에 올려 둔 동안 */
+  const [dropping, setDropping] = useState(false);
   /** 지금 고치는 중인 블록 (그 블록만 textarea로 그린다) */
   const [active, setActive] = useState<string | null>(autoFocus ? blocks[0]?.id ?? null : null);
   /** 다음 그리기 뒤에 커서를 둘 곳 */
@@ -73,11 +84,58 @@ export function BlockEditor({ blocks, onChange, autoFocus }: { blocks: Block[]; 
     focusBlock(b.id, text.length);
   };
 
-  const menuItems = menu ? BLOCK_MENU.filter((m) => !menu.q || m.label.includes(menu.q) || m.keys.some((k) => k.startsWith(menu.q.toLowerCase()))) : [];
+  /**
+   * 파일을 차례로 올리고, 그림은 기준 블록 뒤에 그림 블록으로 넣는다. 그림이 아닌 파일은 첨부에만 붙는다(알림은 onUpload가 한다).
+   * 기준 블록이 빈 문단이면 그 자리를 그림으로 바꾼다. 그림 뒤에는 이어 쓸 빈 문단을 둔다.
+   * @param files 올릴 파일
+   * @param anchorId 기준 블록 id
+   */
+  const addFiles = async (files: File[], anchorId: string) => {
+    if (!onUpload || !files.length) return;
+    const imgs: Block[] = [];
+    setUploading((n) => n + files.length);
+    for (const f of files) {
+      const r = await onUpload(f);
+      setUploading((n) => n - 1);
+      if (r?.image) imgs.push(imageBlock(r.url, r.name));
+    }
+    if (!imgs.length) return;
+    const { blocks: cur, onChange: change } = latest.current;
+    const found = cur.findIndex((b) => b.id === anchorId);
+    const i = found < 0 ? cur.length - 1 : found;
+    const anchor = cur[i];
+    const replaceAnchor = anchor?.type === 'p' && !anchor.text;
+    const after = cur.slice(i + 1);
+    const tail = after[0]?.type === 'p' && !after[0].text ? null : newBlock('p');
+    change([...cur.slice(0, replaceAnchor ? i : i + 1), ...imgs, ...(tail ? [tail] : []), ...after]);
+    const next = tail ?? after[0];
+    focusBlock(next.id, 0);
+  };
+
+  const menuItems = menu ? BLOCK_MENU.filter((m) => (m.type !== 'image' || !!onUpload) && (!menu.q || m.label.includes(menu.q) || m.keys.some((k) => k.startsWith(menu.q.toLowerCase())))) : [];
   const pickMenu = (i: number, type: BlockType) => {
     setMenu(null);
+    if (type === 'image') {
+      // "/그림"은 글을 지우고 파일 고르기 창을 연다. 고른 그림이 이 자리에 들어간다
+      replace(i, { ...blocks[i], type: 'p', text: '' });
+      pickAt.current = blocks[i].id;
+      fileInput.current?.click();
+      return;
+    }
     setType(i, type);
   };
+
+  /**
+   * 붙여넣기: 파일만 있으면(스크린샷, 복사한 그림) 올린다. 글이 함께 있으면(표 복사 등) 글로 붙인다.
+   * @param b 붙여 넣은 블록
+   */
+  const onPaste = (b: Block, e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = [...e.clipboardData.files];
+    if (!onUpload || !files.length || e.clipboardData.types.includes('text/plain')) return;
+    e.preventDefault();
+    void addFiles(files, b.id);
+  };
+  const hasFiles = (e: DragEvent) => !!onUpload && e.dataTransfer.types.includes('Files');
 
   const onKey = (i: number, b: Block, e: KeyboardEvent<HTMLTextAreaElement>) => {
     const el = e.currentTarget;
@@ -143,6 +201,12 @@ export function BlockEditor({ blocks, onChange, autoFocus }: { blocks: Block[]; 
           setWant({ id: b.id, pos: 0 });
           return;
         }
+        // 앞이 그림이면 합치지 않고 그림을 고른다(한 번 더 누르면 지운다). 빈 문단이면 문단은 지운다
+        if (prev.type === 'image') {
+          if (!value) onChange(blocks.filter((_, k) => k !== i));
+          focusBlock(prev.id, 0);
+          return;
+        }
         const merged = { ...prev, text: prev.text + value };
         onChange([...blocks.slice(0, i - 1), merged, ...blocks.slice(i + 1)]);
         focusBlock(prev.id, prev.text.length);
@@ -194,7 +258,27 @@ export function BlockEditor({ blocks, onChange, autoFocus }: { blocks: Block[]; 
   for (const b of blocks) nums.push((n = b.type === 'number' ? n + 1 : 0));
 
   return (
-    <div ref={root} className="blocks" style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+    <div
+      ref={root}
+      className="blocks"
+      onDragOver={(e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        setDropping(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropping(false);
+      }}
+      onDrop={(e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        setDropping(false);
+        // 놓은 자리의 블록 뒤에 넣는다. 블록 사이 빈 곳이면 끝에
+        const at = (e.target as HTMLElement).closest('[data-block-id]')?.getAttribute('data-block-id') ?? blocks[blocks.length - 1].id;
+        void addFiles([...e.dataTransfer.files], at);
+      }}
+      style={{ display: 'flex', flexDirection: 'column', minWidth: 0, borderRadius: 8, outline: dropping ? '2px dashed var(--accent)' : undefined, outlineOffset: 6, background: dropping ? 'var(--accent-sel)' : undefined }}
+    >
       {blocks.map((b, i) => (
         <BlockRow
           key={b.id}
@@ -211,6 +295,7 @@ export function BlockEditor({ blocks, onChange, autoFocus }: { blocks: Block[]; 
           onInput={(el) => onInput(i, b, el)}
           onKey={(e) => onKey(i, b, e)}
           onToggle={() => replace(i, { ...b, checked: !b.checked })}
+          onPaste={(e) => onPaste(b, e)}
           onHrKey={(e) => {
             if (e.key === 'Backspace' || e.key === 'Delete') {
               e.preventDefault();
@@ -229,6 +314,27 @@ export function BlockEditor({ blocks, onChange, autoFocus }: { blocks: Block[]; 
           menu={menu?.id === b.id ? { items: menuItems, sel: menu.sel, pick: (t) => pickMenu(i, t), hover: (k) => setMenu({ ...menu, sel: k }) } : null}
         />
       ))}
+      {(uploading > 0 || dropping) && (
+        <span role="status" style={{ padding: '4px 0', fontSize: 12, color: 'var(--accent-ink)' }}>
+          {uploading > 0 ? `파일 ${uploading}개 올리는 중…` : '놓으면 그림은 본문에, 다른 파일은 첨부에 넣어요'}
+        </span>
+      )}
+      {onUpload && (
+        <input
+          ref={fileInput}
+          type="file"
+          accept="image/png,image/jpeg,image/gif,image/webp"
+          multiple
+          hidden
+          onChange={(e) => {
+            const picked = [...(e.target.files ?? [])];
+            e.target.value = '';
+            const at = pickAt.current ?? blocks[blocks.length - 1].id;
+            pickAt.current = null;
+            void addFiles(picked, at);
+          }}
+        />
+      )}
       {/* 맨 아래 빈 곳을 누르면 끝에 문단을 하나 더한다 */}
       <div
         aria-hidden
@@ -244,6 +350,28 @@ export function BlockEditor({ blocks, onChange, autoFocus }: { blocks: Block[]; 
   );
 }
 
+/** 올린 파일: 그림이면 본문에 그림 블록으로 넣는다 */
+export interface UploadedFile {
+  /** 파일 주소 (그림 블록의 src) */
+  url: string;
+  /** 파일 이름 (그림의 대체 글) */
+  name: string;
+  /** 그림인지 */
+  image: boolean;
+}
+
+interface EditorProps {
+  blocks: Block[];
+  onChange(next: Block[]): void;
+  /** 처음 열 때 첫 블록에 커서를 둔다 */
+  autoFocus?: boolean;
+  /**
+   * 파일 하나 올리기. 실패하면 알림을 띄우고 null을 준다. 없으면 붙여넣기·끌어 놓기·"/그림"을 끈다
+   * @param file 올릴 파일
+   */
+  onUpload?: (file: File) => Promise<UploadedFile | null>;
+}
+
 /** 블록 종류별 글자 모양 */
 const TYPE_STYLE: Record<BlockType, CSSProperties> = {
   p: { fontSize: 15, lineHeight: 1.7 },
@@ -256,6 +384,7 @@ const TYPE_STYLE: Record<BlockType, CSSProperties> = {
   code: { fontFamily: 'var(--mono)', fontSize: 13, lineHeight: 1.6 },
   quote: { fontSize: 15, lineHeight: 1.7, color: 'var(--text-2)' },
   hr: {},
+  image: {},
 };
 
 interface RowProps {
@@ -272,13 +401,18 @@ interface RowProps {
   onInput(el: HTMLTextAreaElement): void;
   onKey(e: KeyboardEvent<HTMLTextAreaElement>): void;
   onToggle(): void;
+  /** 글을 붙여 넣을 때 (파일이면 올린다) */
+  onPaste(e: ClipboardEvent<HTMLTextAreaElement>): void;
+  /** 글이 없는 블록(구분선, 그림)의 키: 지우기, Enter로 아래에 문단, ↑↓ 이동 */
   onHrKey(e: KeyboardEvent<HTMLDivElement>): void;
   menu: { items: typeof BLOCK_MENU; sel: number; pick(t: BlockType): void; hover(k: number): void } | null;
 }
 
-function BlockRow({ b, num, editing, onlyOne, onFocus, onBlur, onClickText, onInput, onKey, onToggle, onHrKey, menu }: RowProps) {
+function BlockRow({ b, num, editing, onlyOne, onFocus, onBlur, onClickText, onInput, onKey, onToggle, onPaste, onHrKey, menu }: RowProps) {
   const copy = useCopy();
   const ta = useRef<HTMLTextAreaElement>(null);
+  /** 그림을 불러오지 못했다 (첨부에서 지웠거나 없는 파일) */
+  const [broken, setBroken] = useState(false);
   // textarea는 글 길이에 맞춰 높이를 늘린다
   useLayoutEffect(() => {
     const el = ta.current;
@@ -289,8 +423,19 @@ function BlockRow({ b, num, editing, onlyOne, onFocus, onBlur, onClickText, onIn
 
   if (b.type === 'hr')
     return (
-      <div data-block-id={b.id} role="separator" tabIndex={0} aria-label="구분선" onKeyDown={onHrKey} onFocus={onFocus} onBlur={onBlur} className="block-hr" style={{ padding: '10px 0', outline: 'none', cursor: 'default' }}>
+      <div data-block-id={b.id} role="separator" tabIndex={0} aria-label="구분선" onKeyDown={onHrKey} onFocus={onFocus} onBlur={onBlur} className="block-atom" style={{ padding: '10px 0', borderRadius: 4, cursor: 'default' }}>
         <hr style={{ margin: 0, border: 0, borderTop: '1px solid var(--line-strong)' }} />
+      </div>
+    );
+
+  if (b.type === 'image')
+    return (
+      <div data-block-id={b.id} tabIndex={0} role="group" aria-label={`그림 ${b.text}`} onKeyDown={onHrKey} onFocus={onFocus} onBlur={onBlur} className="block-atom" style={{ padding: '6px 0', borderRadius: 8, cursor: 'default' }}>
+        {broken || !b.src ? (
+          <div style={{ padding: '14px 16px', borderRadius: 8, border: '1px dashed var(--line-strong)', fontSize: 13, color: 'var(--text-3)' }}>그림을 불러오지 못했어요 · 첨부에서 지웠을 수 있어요 ({b.text || '이름 없음'}) · 눌러서 Backspace로 이 블록을 지워요</div>
+        ) : (
+          <img src={b.src} alt={b.text} loading="lazy" draggable={false} onError={() => setBroken(true)} style={{ display: 'block', maxWidth: '100%', maxHeight: 520, borderRadius: 8, border: '1px solid var(--line-soft)' }} />
+        )}
       </div>
     );
 
@@ -328,6 +473,7 @@ function BlockRow({ b, num, editing, onlyOne, onFocus, onBlur, onClickText, onIn
       placeholder={placeholder}
       onChange={(e) => onInput(e.currentTarget)}
       onKeyDown={onKey}
+      onPaste={onPaste}
       onFocus={onFocus}
       onBlur={onBlur}
       aria-label={BLOCK_MENU.find((m) => m.type === b.type)?.label}
